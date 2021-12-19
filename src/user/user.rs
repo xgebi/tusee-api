@@ -24,6 +24,12 @@ struct LoginResult {
     error_message: String
 }
 
+#[derive(Debug, Serialize)]
+struct RegistrationResult {
+    error: bool,
+    message: String,
+}
+
 #[get("/api/registration-enabled")]
 pub(crate) async fn is_registration_enabled() -> HttpResponse {
     let res = HttpResponse::Ok()
@@ -97,7 +103,15 @@ pub(crate) async fn log_user_in(req_body: String) -> HttpResponse {
 
 #[post("/api/register")]
 pub(crate) async fn register_user(req_body: String) -> HttpResponse {
+    let mut registration_result: RegistrationResult = RegistrationResult {
+        error: false,
+        message: "".to_string()
+    };
+
+    // check if email is in use, if true return error
+    //
+
     let res = HttpResponse::Ok()
-        .json(login_result);
+        .json(registration_result);
     res
 }
