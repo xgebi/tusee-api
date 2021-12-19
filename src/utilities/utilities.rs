@@ -14,7 +14,7 @@ pub(crate) fn create_database_connection() -> Client {
     match envy::from_env::<Config>() {
         Ok(config) => {
             let connection_string = format!("host={} port={} user={} password='{}' dbname={}",
-                                            config.db_host, config.db_port, config.db_user,
+                                            config.db_host, config.db_port.into(), config.db_user,
                                             config.db_password, config.db_name);
             let mut client = Client::connect(connection_string.as_str(), NoTls);
             match client {
