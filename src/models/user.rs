@@ -1,5 +1,5 @@
 #[derive(Queryable)]
-pub(crate) struct Post {
+pub(crate) struct User {
     pub(crate) uuid: String,
     pub(crate) display_name: String,
     pub(crate) password: String,
