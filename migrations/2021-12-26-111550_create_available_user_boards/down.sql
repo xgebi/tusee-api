@@ -1,0 +1,1 @@
+DROP TABLE IF EXISTS tusee_available_user_boards;
