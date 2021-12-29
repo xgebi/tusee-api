@@ -1,3 +1,5 @@
+use crate::models::types::Tusee_access_types;
+
 table! {
     tusee_access_audit_log (uuid) {
         uuid -> Varchar,

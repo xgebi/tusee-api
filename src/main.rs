@@ -2,6 +2,7 @@ mod user;
 mod services;
 mod utilities;
 mod models;
+pub(crate) mod schema;
 
 #[macro_use]
 extern crate diesel;
@@ -16,7 +17,7 @@ use actix_web::{get, post, web, http, App, HttpResponse, HttpServer, Responder};
 use actix_cors::Cors;
 use lettre::transport::smtp::authentication::Credentials;
 use lettre::{Message, SmtpTransport, Transport};
-use crate::user::user::{log_user_in, register_user, is_registration_enabled};
+use crate::user::user::{register_user, is_registration_enabled}; // log_user_in
 
 #[post("/echo")]
 async fn echo(req_body: String) -> impl Responder {
@@ -63,7 +64,7 @@ async fn main() -> std::io::Result<()> {
             .service(echo)
             .service(send_email)
             .service(is_registration_enabled)
-            .service(log_user_in)
+            // .service(log_user_in)
             .service(register_user)
             .route("/hey", web::get().to(manual_hello))
     })
