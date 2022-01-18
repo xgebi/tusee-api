@@ -1,5 +1,5 @@
 -- Your SQL goes here
-CREATE TYPE tusee_settings_type AS ENUM ('boolean', 'text', 'text-long');
+CREATE TYPE tusee_settings_type AS ENUM ('Boolean', 'Text', 'TextLong');
 CREATE TABLE IF NOT EXISTS tusee_settings (
     settings_name			VARCHAR(80) PRIMARY KEY,
 	display_name			VARCHAR(100) NOT NULL,

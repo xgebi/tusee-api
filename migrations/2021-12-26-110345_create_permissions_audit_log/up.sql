@@ -1,4 +1,4 @@
-CREATE TYPE tusee_permissions_types AS ENUM ('wrong_permissions');
+CREATE TYPE tusee_permissions_types AS ENUM ('WrongPermissions');
 
 CREATE TABLE IF NOT EXISTS tusee_permissions_audit_log
 (
