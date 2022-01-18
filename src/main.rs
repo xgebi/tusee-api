@@ -68,7 +68,7 @@ async fn main() -> std::io::Result<()> {
         .unwrap();
     let handlebars_ref = web::Data::new(handlebars);
 
-    HttpServer::new(|| {
+    HttpServer::new(move || {
         App::new()
             .wrap(Cors::permissive().allowed_origin_fn(|origin, _req_head| {
                 return match origin.to_str() {

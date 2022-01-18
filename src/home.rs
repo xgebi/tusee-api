@@ -5,6 +5,9 @@ use handlebars::Handlebars;
 
 #[get("/")]
 pub(crate) async fn process_home(hb: web::Data<Handlebars<'_>>) -> HttpResponse {
+    let data = json!({
+        "name": "Handlebars"
+    });
     let body = hb.render("index", &data).unwrap();
 
     HttpResponse::Ok().body(body)

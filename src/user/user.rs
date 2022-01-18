@@ -121,9 +121,9 @@ pub(crate) async fn register_user(req_body: String) -> HttpResponse {
     }
 
     let mut conn = establish_connection();
-    tusee_users.select(tusee_users::email).filter(tusee_users::email.eq);
+    // tusee_users.select(tusee_users::email).filter(tusee_users::email.eq);
 
-    let mut registration_result: RegistrationResult = RegistrationResult { error: false, message: "".to_string() };
+    // let mut registration_result: RegistrationResult = RegistrationResult { error: false, message: "".to_string() };
     // match row {
     //     Ok(r) => {
     //         if !r.is_empty() {
@@ -144,6 +144,6 @@ pub(crate) async fn register_user(req_body: String) -> HttpResponse {
     // }
 
     let res = HttpResponse::Ok()
-        .json(registration_result);
+        .json(user_details);
     res
 }
