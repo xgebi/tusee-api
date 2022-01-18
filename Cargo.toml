@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 actix-web = "3"
-jsonwebtoken = "7"
+jsonwebtoken = "7" # This should get updated soon-ish, it's cause for failing security audit
 serde = {version = "1.0", features = ["derive"] }
 lettre = "0.10.0-rc.4"
 postgres = "0.19.1"
