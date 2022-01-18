@@ -1,12 +1,19 @@
+#[macro_use]
+extern crate actix_web;
+
+#[macro_use]
+extern crate serde_json;
+
+#[macro_use]
+extern crate diesel;
+extern crate dotenv;
+
 mod user;
 mod services;
 mod utilities;
 mod models;
 pub(crate) mod schema;
-
-#[macro_use]
-extern crate diesel;
-extern crate dotenv;
+mod home;
 
 use diesel::prelude::*;
 use diesel::pg::PgConnection;
@@ -17,6 +24,8 @@ use actix_web::{get, post, web, http, App, HttpResponse, HttpServer, Responder};
 use actix_cors::Cors;
 use lettre::transport::smtp::authentication::Credentials;
 use lettre::{Message, SmtpTransport, Transport};
+use handlebars::Handlebars;
+use crate::home::process_home;
 use crate::user::user::{register_user, is_registration_enabled}; // log_user_in
 
 #[post("/echo")]
@@ -53,6 +62,12 @@ async fn send_email(req_body: String) -> impl Responder {
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    let mut handlebars = Handlebars::new();
+    handlebars
+        .register_templates_directory(".html", "./static/templates")
+        .unwrap();
+    let handlebars_ref = web::Data::new(handlebars);
+
     HttpServer::new(|| {
         App::new()
             .wrap(Cors::permissive().allowed_origin_fn(|origin, _req_head| {
@@ -61,11 +76,13 @@ async fn main() -> std::io::Result<()> {
                     Ok(val) => val.find("localhost").is_some()
                 }
             }))
-            .service(echo)
-            .service(send_email)
-            .service(is_registration_enabled)
+            // .service(echo)
+            // .service(send_email)
+            // .service(is_registration_enabled)
             // .service(log_user_in)
-            .service(register_user)
+            // .service(register_user)
+            .app_data(handlebars_ref.clone())
+            .service(process_home)
             .route("/hey", web::get().to(manual_hello))
     })
         .bind("127.0.0.1:8081")?
