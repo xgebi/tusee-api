@@ -82,10 +82,10 @@ async fn main() -> std::io::Result<()> {
             // .service(log_user_in)
             // .service(register_user)
             .app_data(handlebars_ref.clone())
-            .service(process_home)
+            .service(home::process_home)
             .route("/hey", web::get().to(manual_hello))
     })
-        .bind("127.0.0.1:8081")?
+        .bind("127.0.0.1:8083")?
         .run()
         .await
 }
