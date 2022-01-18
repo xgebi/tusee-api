@@ -1,4 +1,4 @@
-CREATE TYPE tusee_access_types AS ENUM ('login', 'logout');
+CREATE TYPE tusee_access_types AS ENUM ('Login', 'Logout');
 
 CREATE TABLE IF NOT EXISTS tusee_access_audit_log
 (
