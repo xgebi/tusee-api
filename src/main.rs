@@ -14,6 +14,7 @@ mod utilities;
 mod models;
 pub(crate) mod schema;
 mod home;
+mod auth;
 
 use diesel::prelude::*;
 use diesel::pg::PgConnection;
@@ -27,6 +28,7 @@ use lettre::{Message, SmtpTransport, Transport};
 use handlebars::Handlebars;
 use crate::home::process_home;
 use crate::user::user::{register_user, is_registration_enabled}; // log_user_in
+use crate::auth::forms::{show_login_page, login_user};
 
 #[post("/echo")]
 async fn echo(req_body: String) -> impl Responder {
@@ -83,6 +85,8 @@ async fn main() -> std::io::Result<()> {
             // .service(register_user)
             .app_data(handlebars_ref.clone())
             .service(home::process_home)
+            .service(show_login_page)
+            .service(login_user)
             .route("/hey", web::get().to(manual_hello))
     })
         .bind("127.0.0.1:8083")?

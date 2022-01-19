@@ -2,9 +2,24 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Title</title>
+  <title>Login | Tusee</title>
+  <link rel="stylesheet" href="/static/css/styles.css">
 </head>
 <body>
-
+  <main>
+    <form method="post" action="/login">
+      <section>
+        <label for="username">Username</label>
+        <input type="text" id="username" name="username" />
+      </section>
+      <section>
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" />
+      </section>
+      <section>
+        <input type="submit" value="login" />
+      </section>
+    </form>
+  </main>
 </body>
 </html>

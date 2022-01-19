@@ -2565,7 +2565,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "tusee-be"
+name = "tusee"
 version = "0.1.0"
 dependencies = [
  "actix-cors",
