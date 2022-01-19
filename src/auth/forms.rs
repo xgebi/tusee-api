@@ -4,6 +4,11 @@ use actix_web::{middleware, App, Error, HttpResponse, HttpServer};
 use actix_web::http::{header};
 use handlebars::Handlebars;
 use serde::{Deserialize, Serialize};
+use crate::models::user::User;
+use crate::schema::tusee_users::dsl::tusee_users;
+use crate::utilities::utilities::establish_connection;
+use diesel::prelude::*;
+use crate::models::*;
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct LoginInfo {
@@ -19,7 +24,7 @@ pub(crate) async fn show_login_page(hb: web::Data<Handlebars<'_>>) -> HttpRespon
     // if invalid -> redirect to login
     // else render index page
     let data = json!({
-        "name": "Handlebars"
+        "error": false,
     });
     println!("it's in processing home");
     let body = hb.render("login", &data).unwrap();
@@ -28,12 +33,22 @@ pub(crate) async fn show_login_page(hb: web::Data<Handlebars<'_>>) -> HttpRespon
 }
 
 #[post("/login")]
-pub(crate) async fn login_user(info: web::Form<LoginInfo>) -> HttpResponse {
+pub(crate) async fn login_user(hb: web::Data<Handlebars<'_>>, info: web::Form<LoginInfo>) -> HttpResponse {
+    use crate::schema::tusee_users::dsl::*;
     println!("=========={:?}=========", info);
-    // Check for jwt cookie
-    // validate cookie
-    // if cookie still valid -> redirect to dashboard
-    // if invalid -> redirect to login
-    // else render index page
-    HttpResponse::Ok().finish()
+    // validate against database
+    let conn = establish_connection();
+    tusee_users
+        .select(password)
+        .filter(email.eq(&info.username))
+        .load::<User>(&conn);
+    // if valid -> set jwt cookie
+    // else -> render index page
+    let data = json!({
+        "error": true,
+    });
+    println!("it's in processing home");
+    let body = hb.render("login", &data).unwrap();
+
+    HttpResponse::Ok().body(body)
 }

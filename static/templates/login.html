@@ -8,6 +8,11 @@
 <body>
   <main>
     <form method="post" action="/login">
+      {{#if error}}
+      <section>
+        Username or password are wrong
+      </section>
+      {{/if}}
       <section>
         <label for="username">Username</label>
         <input type="text" id="username" name="username" />
