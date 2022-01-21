@@ -86,7 +86,7 @@ table! {
         password -> Varchar,
         email -> Nullable<Varchar>,
         token -> Nullable<Varchar>,
-        expiry_date -> Nullable<Float8>,
+        expiry_date -> Float8,
     }
 }
 

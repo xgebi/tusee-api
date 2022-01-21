@@ -1,6 +1,12 @@
+#![allow(unused)]
+#![allow(clippy::all)]
+use crate::schema::tusee_users;
+use serde::{Serialize, Deserialize};
 use diesel::prelude::*;
 
-#[derive(Queryable, Insertable)]
+#[derive(Queryable, Debug, Identifiable)]
+#[table_name = "tusee_users"]
+#[primary_key(uuid)]
 pub struct User {
     pub uuid: String,
     pub display_name: String,

@@ -5,5 +5,5 @@ CREATE TABLE IF NOT EXISTS tusee_users (
 	password character varying(500) NOT NULL,
 	email character varying(350) UNIQUE,
 	token character varying(350),
-	expiry_date double precision
+	expiry_date double precision DEFAULT 0
 )
