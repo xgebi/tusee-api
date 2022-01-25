@@ -1,6 +1,7 @@
 use actix_web::{get, web, HttpRequest, post};
 #[cfg(unix)]
-use actix_web::{middleware, App, Error, HttpResponse, HttpServer};
+use actix_web::{middleware, App, HttpResponse, HttpServer};
+use actix_web::error::BlockingError;
 use actix_web::http::{header};
 use diesel::associations::HasTable;
 use handlebars::Handlebars;
@@ -10,6 +11,9 @@ use crate::schema::tusee_users::dsl::tusee_users;
 use crate::utilities::utilities::establish_connection;
 use diesel::prelude::*;
 use crate::models::*;
+use diesel::r2d2::{self, ConnectionManager, Error};
+
+type DbPool = r2d2::Pool<ConnectionManager<PgConnection>>;
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct LoginInfo {
@@ -34,24 +38,40 @@ pub(crate) async fn show_login_page(hb: web::Data<Handlebars<'_>>) -> HttpRespon
 }
 
 #[post("/login")]
-pub(crate) async fn login_user(hb: web::Data<Handlebars<'_>>, info: web::Form<LoginInfo>) -> HttpResponse {
+pub(crate) async fn login_user(pool: web::Data<DbPool>, hb: web::Data<Handlebars<'_>>, info: web::Form<LoginInfo>) -> HttpResponse {
     use crate::schema::tusee_users::dsl::*;
-    let mut data;
     // validate against database
-    let conn = establish_connection();
-    let result: Result<Vec<User>, diesel::result::Error> = tusee_users::table.find()
-        .filter(email.eq(&info.username))
-        .load(&conn);
-    match result {
-        // if valid -> set jwt cookie
-        // else -> render index page
-        Ok(_) => {}
-        Err(_) => {}
+    // use web::block to offload blocking Diesel code without blocking server thread
+    let user: Result<QueryResult<User>, BlockingError<Error>> = web::block(move || {
+        let conn = pool.get()?;
+        let user = tusee_users.filter(email.eq(&info.username)).first::<User>(&conn);
+        Ok(user)
+    }).await;
+    match user {
+        Ok(u) => {
+            match u {
+                Ok(us) => {
+                    // if valid -> set jwt cookie
+                    HttpResponse::Ok().json(us)
+                }
+                Err(_) => {
+                    let res = HttpResponse::NotFound()
+                            .body(format!("No user found with uid: {}", info.username));
+                    res
+                }
+            }
+        }
+        Err(_) => {
+            let res = HttpResponse::NotFound()
+                    .body(format!("No user found with uid: {}", info.username));
+            res
+        }
     }
-    data = json!({
-        "error": true,
-    });
-    let body = hb.render("login", &data).unwrap();
 
-    HttpResponse::Ok().body(body)
+    // data = json!({
+    //     "error": true,
+    // });
+    // let body = hb.render("login", &data).unwrap();
+    //
+    // HttpResponse::Ok().body(body)
 }

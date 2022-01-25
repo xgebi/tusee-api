@@ -4,17 +4,17 @@ table! {
 
     tusee_access_audit_log (uuid) {
         uuid -> Varchar,
-        tusee_user -> Nullable<Varchar>,
-        ip -> Nullable<Varchar>,
-        event -> Nullable<Tusee_access_type>,
+        tusee_user -> Varchar,
+        ip -> Varchar,
+        event -> Tusee_access_type,
     }
 }
 
 table! {
     tusee_available_user_boards (uuid) {
         uuid -> Varchar,
-        tusee_user -> Nullable<Varchar>,
-        board -> Nullable<Varchar>,
+        tusee_user -> Varchar,
+        board -> Varchar,
     }
 }
 
@@ -23,15 +23,15 @@ table! {
         uuid -> Varchar,
         name -> Nullable<Text>,
         description -> Nullable<Text>,
-        owner -> Nullable<Varchar>,
+        owner -> Varchar,
     }
 }
 
 table! {
     tusee_encrypted_keys (uuid) {
         uuid -> Varchar,
-        tusee_user -> Nullable<Varchar>,
-        key -> Nullable<Text>,
+        tusee_user -> Varchar,
+        key -> Text,
     }
 }
 
@@ -41,18 +41,18 @@ table! {
 
     tusee_permissions_audit_log (uuid) {
         uuid -> Varchar,
-        tusee_user -> Nullable<Varchar>,
-        ip -> Nullable<Varchar>,
-        event -> Nullable<Tusee_permissions_types>,
+        tusee_user -> Varchar,
+        ip -> Varchar,
+        event -> Tusee_permissions_types,
     }
 }
 
 table! {
     tusee_scheduled_blocks (uuid) {
         uuid -> Varchar,
-        task -> Nullable<Varchar>,
-        start_time -> Nullable<Text>,
-        end_time -> Nullable<Text>,
+        task -> Varchar,
+        start_time -> Text,
+        end_time -> Text,
     }
 }
 
@@ -71,21 +71,21 @@ table! {
 table! {
     tusee_tasks (uuid) {
         uuid -> Varchar,
-        creator -> Nullable<Varchar>,
-        board -> Nullable<Varchar>,
-        description -> Nullable<Text>,
-        updated -> Nullable<Text>,
-        created -> Nullable<Text>,
+        creator -> Varchar,
+        board -> Varchar,
+        description -> Text,
+        updated -> Text,
+        created -> Text,
     }
 }
 
 table! {
     tusee_users (uuid) {
         uuid -> Varchar,
-        display_name -> Nullable<Text>,
+        display_name -> Text,
         password -> Varchar,
-        email -> Nullable<Varchar>,
-        token -> Nullable<Varchar>,
+        email -> Varchar,
+        token -> Varchar,
         expiry_date -> Float8,
     }
 }

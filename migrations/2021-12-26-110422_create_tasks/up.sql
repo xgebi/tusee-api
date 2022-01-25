@@ -1,11 +1,11 @@
 CREATE TABLE IF NOT EXISTS tusee_tasks
 (
     uuid        character varying(200) NOT NULL,
-    creator       character varying(200),
-    board       character varying(200),
-    description text,
-    updated text,
-    created text,
+    creator       character varying(200) NOT NULL,
+    board       character varying(200) NOT NULL,
+    description text NOT NULL,
+    updated text NOT NULL,
+    created text NOT NULL,
 
     PRIMARY KEY (uuid),
     CONSTRAINT creator_fkey FOREIGN KEY (creator)

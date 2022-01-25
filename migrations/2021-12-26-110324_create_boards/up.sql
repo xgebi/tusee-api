@@ -1,9 +1,9 @@
 CREATE TABLE IF NOT EXISTS tusee_boards
 (
     uuid        character varying(200) NOT NULL,
-    name        text,
-    description text,
-    owner       character varying(200),
+    name        text DEFAULT '',
+    description text DEFAULT '',
+    owner       character varying(200) NOT NULL,
 
     PRIMARY KEY (uuid),
     CONSTRAINT user_fkey FOREIGN KEY (owner)

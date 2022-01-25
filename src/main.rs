@@ -23,10 +23,11 @@ use std::env;
 
 use actix_web::{get, post, web, http, App, HttpResponse, HttpServer, Responder};
 use actix_cors::Cors;
+use diesel::r2d2::{self, ConnectionManager};
 use lettre::transport::smtp::authentication::Credentials;
 use lettre::{Message, SmtpTransport, Transport};
 use handlebars::Handlebars;
-use crate::home::process_home;
+use crate::home::home::process_home;
 use crate::user::user::{register_user, is_registration_enabled}; // log_user_in
 use crate::auth::forms::{show_login_page, login_user};
 
@@ -70,6 +71,13 @@ async fn main() -> std::io::Result<()> {
         .unwrap();
     let handlebars_ref = web::Data::new(handlebars);
 
+    let database_url = env::var("DATABASE_URL")
+        .expect("DATABASE_URL must be set");
+    let manager = ConnectionManager::<PgConnection>::new(database_url);
+    let pool = r2d2::Pool::builder()
+        .build(manager)
+        .expect("Failed to create pool.");
+
     HttpServer::new(move || {
         App::new()
             .wrap(Cors::permissive().allowed_origin_fn(|origin, _req_head| {
@@ -78,13 +86,9 @@ async fn main() -> std::io::Result<()> {
                     Ok(val) => val.find("localhost").is_some()
                 }
             }))
-            // .service(echo)
-            // .service(send_email)
-            // .service(is_registration_enabled)
-            // .service(log_user_in)
-            // .service(register_user)
+            .data(pool.clone())
             .app_data(handlebars_ref.clone())
-            .service(home::process_home)
+            .service(home::home::process_home)
             .service(show_login_page)
             .service(login_user)
             .route("/hey", web::get().to(manual_hello))

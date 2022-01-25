@@ -1,8 +1,8 @@
 CREATE TABLE IF NOT EXISTS tusee_available_user_boards
 (
     uuid        character varying(200) NOT NULL,
-    tusee_user       character varying(200),
-    board       character varying(200),
+    tusee_user       character varying(200) NOT NULL,
+    board       character varying(200) NOT NULL,
 
     PRIMARY KEY (uuid),
     CONSTRAINT user_fkey FOREIGN KEY (tusee_user)
