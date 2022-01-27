@@ -15,7 +15,7 @@ use handlebars::Handlebars;
 use serde::{Deserialize, Serialize};
 use crate::models::user::User;
 use crate::schema::tusee_users::dsl::tusee_users;
-use crate::utilities::utilities::establish_connection;
+// use crate::utilities::utilities::establish_connection;
 use diesel::prelude::*;
 use crate::models::*;
 use diesel::r2d2::{self, Error as DbError, ConnectionManager};
@@ -30,11 +30,6 @@ pub struct LoginInfo {
 
 #[get("/login")]
 pub(crate) async fn show_login_page(hb: web::Data<Handlebars<'_>>) -> HttpResponse {
-    // Check for jwt cookie
-    // validate cookie
-    // if cookie still valid -> redirect to dashboard
-    // if invalid -> redirect to login
-    // else render index page
     let data = json!({
         "error": false,
     });
@@ -58,7 +53,7 @@ pub(crate) async fn login_user(pool: web::Data<DbPool>, hb: web::Data<Handlebars
     if let Ok(user_result) = user {
         if let Ok(user_query) = user_result {
             let hashed_password = PasswordHash::new(&*user_query.password).unwrap();
-            if let Ok(password_verified) = Argon2::default().verify_password(info.password.as_ref(), &hashed_password) {
+            if let Ok(_) = Argon2::default().verify_password(info.password.as_ref(), &hashed_password) {
                 // return good result
             }
         }

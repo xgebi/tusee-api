@@ -6,7 +6,7 @@ use serde_json::Result;
 use crate::models::user::User;
 use crate::schema::tusee_users::dsl::tusee_users;
 use crate::schema::tusee_users::email;
-use crate::utilities::utilities::establish_connection;
+// use crate::utilities::utilities::establish_connection;
 
 #[derive(Debug, Serialize)]
 struct IsRegistrationEnabled {
@@ -119,7 +119,7 @@ pub(crate) async fn register_user(req_body: String) -> HttpResponse {
         }
     }
 
-    let mut conn = establish_connection();
+    // let mut conn = establish_connection();
     // tusee_users.select(tusee_users::email).filter(tusee_users::email.eq);
 
     // let mut registration_result: RegistrationResult = RegistrationResult { error: false, message: "".to_string() };

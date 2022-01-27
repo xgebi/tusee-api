@@ -6,7 +6,6 @@ extern crate serde_json;
 
 #[macro_use]
 extern crate diesel;
-extern crate dotenv;
 
 mod user;
 mod services;
@@ -18,7 +17,6 @@ mod auth;
 
 use diesel::prelude::*;
 use diesel::pg::PgConnection;
-use dotenv::dotenv;
 use std::env;
 
 use actix_web::{get, post, web, http, App, HttpResponse, HttpServer, Responder};
@@ -30,6 +28,12 @@ use handlebars::Handlebars;
 use crate::home::home::process_home;
 use crate::user::user::{register_user, is_registration_enabled}; // log_user_in
 use crate::auth::forms::{show_login_page, login_user};
+use serde::Deserialize;
+
+#[derive(Debug, Deserialize)]
+struct Config {
+    database: String,
+}
 
 #[post("/echo")]
 async fn echo(req_body: String) -> impl Responder {
@@ -70,10 +74,8 @@ async fn main() -> std::io::Result<()> {
         .register_templates_directory(".html", "./static/templates")
         .unwrap();
     let handlebars_ref = web::Data::new(handlebars);
-
-    let database_url = env::var("DATABASE_URL")
-        .expect("DATABASE_URL must be set");
-    let manager = ConnectionManager::<PgConnection>::new(database_url);
+    let config = envy::from_env::<Config>().unwrap();
+    let manager = ConnectionManager::<PgConnection>::new(config.database);
     let pool = r2d2::Pool::builder()
         .build(manager)
         .expect("Failed to create pool.");
