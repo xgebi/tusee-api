@@ -1,9 +1,8 @@
 -- Your SQL goes here
-CREATE TYPE tusee_settings_type AS ENUM ('Boolean', 'Text', 'TextLong');
 CREATE TABLE IF NOT EXISTS tusee_settings (
     settings_name			VARCHAR(80) PRIMARY KEY,
 	display_name			VARCHAR(100) NOT NULL,
-	settings_value_type		tusee_settings_type NOT NULL,
+	settings_value_type		VARCHAR(20) NOT NULL CHECK (settings_value_type IN ('Boolean', 'Text', 'TextLong')),
 	settings_value			VARCHAR(200) NOT NULL
 );
 

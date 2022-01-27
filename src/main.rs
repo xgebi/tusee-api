@@ -90,7 +90,7 @@ async fn main() -> std::io::Result<()> {
             .app_data(handlebars_ref.clone())
             .service(home::home::process_home)
             .service(show_login_page)
-            .service(login_user)
+            .route("/login", web::post().to(auth::forms::login_user))
             .route("/hey", web::get().to(manual_hello))
     })
         .bind("127.0.0.1:8083")?

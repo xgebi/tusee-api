@@ -1,12 +1,9 @@
 table! {
-    use diesel::sql_types::*;
-    use crate::models::types::*;
-
     tusee_access_audit_log (uuid) {
         uuid -> Varchar,
         tusee_user -> Varchar,
         ip -> Varchar,
-        event -> Tusee_access_type,
+        event -> Varchar,
     }
 }
 
@@ -36,14 +33,11 @@ table! {
 }
 
 table! {
-    use diesel::sql_types::*;
-    use crate::models::types::*;
-
     tusee_permissions_audit_log (uuid) {
         uuid -> Varchar,
         tusee_user -> Varchar,
         ip -> Varchar,
-        event -> Tusee_permissions_types,
+        event -> Varchar,
     }
 }
 
@@ -57,13 +51,10 @@ table! {
 }
 
 table! {
-    use diesel::sql_types::*;
-    use crate::models::types::*;
-
     tusee_settings (settings_name) {
         settings_name -> Varchar,
         display_name -> Varchar,
-        settings_value_type -> Tusee_settings_type,
+        settings_value_type -> Varchar,
         settings_value -> Varchar,
     }
 }
