@@ -12,6 +12,8 @@ use argon2::{
     },
     Argon2
 };
+use chrono;
+use std::time::SystemTime;
 use diesel::associations::HasTable;
 use handlebars::Handlebars;
 use serde::{Deserialize, Serialize};
@@ -21,6 +23,7 @@ use jsonwebtoken::{encode, Algorithm, Header, EncodingKey};
 use diesel::prelude::*;
 use crate::models::*;
 use diesel::r2d2::{self, Error as DbError, ConnectionManager};
+use crate::auth::token::Token;
 use crate::utilities::configuration::Configuration;
 
 type DbPool = r2d2::Pool<ConnectionManager<PgConnection>>;
@@ -30,6 +33,8 @@ pub struct LoginInfo {
     username: String,
     password: String,
 }
+
+const FIVE_MINUTES_SECS: u64 = 60 * 10;
 
 #[get("/login")]
 pub(crate) async fn show_login_page(hb: web::Data<Handlebars<'_>>) -> HttpResponse {
@@ -56,23 +61,27 @@ pub(crate) async fn login_user(pool: web::Data<DbPool>, hb: web::Data<Handlebars
         if let Ok(user_query) = user_result {
             let hashed_password = PasswordHash::new(&*user_query.password).unwrap();
             if let Ok(_) = Argon2::default().verify_password(info.password.as_ref(), &hashed_password) {
-                let my_claim = LoginInfo {
-                    username: info.username.to_owned(),
-                    password: info.password.to_owned()
+                let my_claim = Token {
+                    email: info.username.to_owned(),
+                    password: info.password.to_owned(),
+                    mfa_verified: false,
+                    expiry_date: SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs() * FIVE_MINUTES_SECS,
                 };
                 let conf = Configuration::new();
+                // TODO replace jwt with jwe https://github.com/hidekatsu-izuno/josekit-rs
                 let jwttoken = encode(&Header::default(), &my_claim, &EncodingKey::from_secret(conf.get_secret().as_ref())).unwrap();
                 let cookie = Cookie::build("token", jwttoken)
                     .domain(conf.get_url())
                     .path("/")
                     .secure(true)
-                    .http_only(true) // this needs to be tested a bit more
+                    .http_only(true) // this needs to be tested a bit more with fetch api
                     .finish();
 
                 let mut response = HttpResponse::new(StatusCode::FOUND);
-                response.add_cookie(&cookie);
-                let mut response_builder = HttpResponse::build_from(response);
-                return Ok(response_builder.header(http::header::LOCATION, "/dashboard").finish());
+                if let Ok(_) = response.add_cookie(&cookie) {
+                    let mut response_builder = HttpResponse::build_from(response);
+                    return Ok(response_builder.header(http::header::LOCATION, "/mfa").finish());
+                }
             }
         }
     }
