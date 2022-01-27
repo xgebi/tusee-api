@@ -1170,6 +1170,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "justconfig"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f73ba283cfc9b74fd251b87a70c7b88c29fb8cba28069f76f2dd5cfd7075faa2"
+
+[[package]]
 name = "kernel32-sys"
 version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2606,6 +2612,7 @@ dependencies = [
  "envy",
  "handlebars",
  "jsonwebtoken",
+ "justconfig",
  "lettre",
  "postgres",
  "postgres-types",

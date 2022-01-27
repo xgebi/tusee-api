@@ -29,6 +29,7 @@ use crate::home::home::process_home;
 use crate::user::user::{register_user, is_registration_enabled}; // log_user_in
 use crate::auth::forms::{show_login_page, login_user};
 use serde::Deserialize;
+use crate::utilities::configuration::Configuration;
 
 #[derive(Debug, Deserialize)]
 struct Config {
@@ -74,8 +75,9 @@ async fn main() -> std::io::Result<()> {
         .register_templates_directory(".html", "./static/templates")
         .unwrap();
     let handlebars_ref = web::Data::new(handlebars);
-    let config = envy::from_env::<Config>().unwrap();
-    let manager = ConnectionManager::<PgConnection>::new(config.database);
+    let config = Configuration::new();
+    println!("{:?}", config.get_database());
+    let manager = ConnectionManager::<PgConnection>::new(config.get_database());
     let pool = r2d2::Pool::builder()
         .build(manager)
         .expect("Failed to create pool.");

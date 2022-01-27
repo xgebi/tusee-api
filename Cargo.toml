@@ -21,3 +21,4 @@ aes-gcm = "0.9.4"
 diesel = { version = "1.4.4", features = ["postgres", "r2d2"] }
 handlebars = { version = "4.2.1", features = ["dir_source"] }
 validator = { version = "0.14", features = ["derive"] }
+justconfig = "1.0"
