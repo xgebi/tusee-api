@@ -3,7 +3,6 @@ use actix_web::{get, post, web::{self, Data, ServiceConfig}, HttpRequest, HttpRe
 use postgres::Row;
 use serde::{Deserialize, Serialize};
 use serde_json::Result;
-use bcrypt::{BcryptResult, DEFAULT_COST, hash, verify};
 use crate::models::user::User;
 use crate::schema::tusee_users::dsl::tusee_users;
 use crate::schema::tusee_users::email;

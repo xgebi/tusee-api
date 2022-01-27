@@ -3,6 +3,13 @@ use actix_web::{get, web, HttpRequest, post};
 use actix_web::{middleware, App, Error as ActixError, HttpResponse, HttpServer};
 use actix_web::error::BlockingError;
 use actix_web::http::{header};
+use argon2::{
+    password_hash::{
+        rand_core::OsRng,
+        PasswordHash, PasswordHasher, PasswordVerifier, SaltString
+    },
+    Argon2
+};
 use diesel::associations::HasTable;
 use handlebars::Handlebars;
 use serde::{Deserialize, Serialize};
@@ -50,7 +57,8 @@ pub(crate) async fn login_user(pool: web::Data<DbPool>, hb: web::Data<Handlebars
 
     if let Ok(user_result) = user {
         if let Ok(user_query) = user_result {
-            if let Ok(password_verified) = bcrypt::verify(&info.password, &user_query.password) {
+            let hashed_password = PasswordHash::new(&*user_query.password).unwrap();
+            if let Ok(password_verified) = Argon2::default().verify_password(info.password.as_ref(), &hashed_password) {
                 // return good result
             }
         }
