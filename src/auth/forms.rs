@@ -12,14 +12,14 @@ use argon2::{
     },
     Argon2
 };
-use chrono;
 use std::time::SystemTime;
 use diesel::associations::HasTable;
 use handlebars::Handlebars;
 use serde::{Deserialize, Serialize};
+use serde_json;
 use crate::models::user::User;
 use crate::schema::tusee_users::dsl::tusee_users;
-use jsonwebtoken::{encode, Algorithm, Header, EncodingKey};
+use josekit::{JoseError, jwe::{JweHeader, A128GCMKW}, jwt::{self, JwtPayload}};
 use diesel::prelude::*;
 use crate::models::*;
 use diesel::r2d2::{self, Error as DbError, ConnectionManager};
@@ -68,19 +68,29 @@ pub(crate) async fn login_user(pool: web::Data<DbPool>, hb: web::Data<Handlebars
                     expiry_date: SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs() * FIVE_MINUTES_SECS,
                 };
                 let conf = Configuration::new();
-                // TODO replace jwt with jwe https://github.com/hidekatsu-izuno/josekit-rs
-                let jwttoken = encode(&Header::default(), &my_claim, &EncodingKey::from_secret(conf.get_secret().as_ref())).unwrap();
-                let cookie = Cookie::build("token", jwttoken)
-                    .domain(conf.get_url())
-                    .path("/")
-                    .secure(true)
-                    .http_only(true) // this needs to be tested a bit more with fetch api
-                    .finish();
+                let mut header = JweHeader::new();
+                header.set_token_type("JWT");
+                header.set_content_encryption("A128CBC-HS256");
 
-                let mut response = HttpResponse::new(StatusCode::FOUND);
-                if let Ok(_) = response.add_cookie(&cookie) {
-                    let mut response_builder = HttpResponse::build_from(response);
-                    return Ok(response_builder.header(http::header::LOCATION, "/mfa").finish());
+                let mut payload = JwtPayload::new();
+                payload.set_subject(serde_json::to_string(&my_claim).unwrap());
+
+                // Encrypting JWT
+                if let Ok(encrypter) = A128GCMKW.encrypter_from_bytes(conf.get_secret().as_bytes()) {
+                    if let Ok(jwt) = jwt::encode_with_encrypter(&payload, &header, &encrypter) {
+                        let cookie = Cookie::build("token", jwt)
+                            .domain(conf.get_url())
+                            .path("/")
+                            .secure(true)
+                            .http_only(true) // this needs to be tested a bit more with fetch api
+                            .finish();
+
+                        let mut response = HttpResponse::new(StatusCode::FOUND);
+                        if let Ok(_) = response.add_cookie(&cookie) {
+                            let mut response_builder = HttpResponse::build_from(response);
+                            return Ok(response_builder.header(http::header::LOCATION, "/mfa").finish());
+                        }
+                    }
                 }
             }
         }
