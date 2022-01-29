@@ -1,4 +1,4 @@
-use actix_web::{get, web, HttpRequest, post};
+use actix_web::{get, web, HttpRequest, post, HttpMessage};
 #[cfg(unix)]
 use actix_web::{middleware, App, Error as ActixError, http, HttpResponse, HttpServer};
 use actix_web::cookie::Cookie;
@@ -12,7 +12,6 @@ use argon2::{
     },
     Argon2
 };
-use std::time::SystemTime;
 use diesel::associations::HasTable;
 use handlebars::Handlebars;
 use serde::{Deserialize, Serialize};
@@ -25,6 +24,11 @@ use crate::models::*;
 use diesel::r2d2::{self, Error as DbError, ConnectionManager};
 use crate::auth::token::Token;
 use crate::utilities::configuration::Configuration;
+use std::time::{SystemTime, UNIX_EPOCH};
+use image::Luma;
+use josekit::jwe::JweDecrypter;
+use otpauth::TOTP;
+use qrcode::QrCode;
 
 type DbPool = r2d2::Pool<ConnectionManager<PgConnection>>;
 
@@ -88,7 +92,14 @@ pub(crate) async fn login_user(pool: web::Data<DbPool>, hb: web::Data<Handlebars
                         let mut response = HttpResponse::new(StatusCode::FOUND);
                         if let Ok(_) = response.add_cookie(&cookie) {
                             let mut response_builder = HttpResponse::build_from(response);
-                            return Ok(response_builder.header(http::header::LOCATION, "/mfa").finish());
+                            // Prompt setting up TOTP two factor authentication during first login
+                            if user_query.first_login {
+                                return Ok(response_builder.header(http::header::LOCATION, "/setup-totp").finish());
+                            }
+                            // add if for set up totp
+                            return Ok(response_builder.header(http::header::LOCATION, "/check-totp").finish());
+                            // Without totp
+                            return Ok(response_builder.header(http::header::LOCATION, "/dashboard").finish());
                         }
                     }
                 }
@@ -103,4 +114,61 @@ pub(crate) async fn login_user(pool: web::Data<DbPool>, hb: web::Data<Handlebars
     let body = hb.render("login", &data).unwrap();
 
     Ok(HttpResponse::Ok().body(body))
+}
+
+pub(crate) async fn show_registration_page(hb: web::Data<Handlebars<'_>>) -> HttpResponse {
+    let already_registered = false;
+    let general_registration_error = false;
+    // check whether user is already registered
+    // if not register user
+    // after successful registration redirect to login
+    let data = json!({
+        "error": general_registration_error,
+        "alreadyRegisteredError": already_registered
+    });
+    let body = hb.render("registration", &data).unwrap();
+
+    HttpResponse::Ok().body(body)
+}
+
+pub(crate) async fn process_registration(hb: web::Data<Handlebars<'_>>, pool: web::Data<DbPool>) -> HttpResponse {
+    let data = json!({
+        "error": false,
+        "alreadyRegisteredError": false
+    });
+    let body = hb.render("registration_processed", &data).unwrap();
+
+    HttpResponse::Ok().body(body)
+}
+
+pub(crate) async fn show_setup_totp_page(req: HttpRequest, hb: web::Data<Handlebars<'_>>) -> HttpResponse {
+    let conf = Configuration::new();
+    if let Some(request_cookie) = req.cookie("token") {
+        if let Ok(decrypter) = A128GCMKW.decrypter_from_bytes(conf.get_secret().as_bytes()) {
+            let (payload, header) = jwt::decode_with_decrypter(&request_cookie, &decrypter).unwrap();
+            println!("{}", payload.subject);
+            let auth = TOTP::new(conf.get_secret());
+            let qr_image = format!("data:image/png;base64,{}", auth.to_uri("", conf.get_url().as_str()));
+        }
+    }
+
+    let data = json!({
+        "error": false,
+    });
+    let body = hb.render("setup_totp_page", &data).unwrap();
+
+    HttpResponse::Ok().body(body)
+}
+
+fn create_qr_image(to_encode: String) -> String {
+    let code = QrCode::new(&to_encode)?;
+    let mut vec = Vec::new();
+    let encoder = image::png::PngEncoder::new(&mut vec);
+    encoder.encode(
+        code.render::<Luma<u8>>().build().as_ref(),
+        ((code.width() + 8) * 8) as u32,
+        ((code.width() + 8) * 8) as u32,
+        image::ColorType::L8,
+    )?;
+    base64::encode(vec)
 }

@@ -14,4 +14,5 @@ pub struct User {
     pub email: String,
     pub token: String,
     pub expiry_date: f64,
+    pub(crate) first_login: bool,
 }

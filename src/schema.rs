@@ -78,6 +78,7 @@ table! {
         email -> Varchar,
         token -> Varchar,
         expiry_date -> Float8,
+        first_login -> Bool,
     }
 }
 
