@@ -25,8 +25,12 @@ use diesel::r2d2::{self, Error as DbError, ConnectionManager};
 use crate::auth::token::Token;
 use crate::utilities::configuration::Configuration;
 use std::time::{SystemTime, UNIX_EPOCH};
+use diesel::insert_into;
 use josekit::jwe::JweDecrypter;
 use totp_rs::{Algorithm, TOTP};
+use crate::schema::tusee_settings::dsl::tusee_settings;
+use crate::schema::tusee_users::{display_name, email, password, uuid};
+use uuid::Uuid;
 
 type DbPool = r2d2::Pool<ConnectionManager<PgConnection>>;
 
@@ -34,6 +38,13 @@ type DbPool = r2d2::Pool<ConnectionManager<PgConnection>>;
 pub struct LoginInfo {
     username: String,
     password: String,
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
+pub struct RegistrationInfo {
+    username: String,
+    password: String,
+    name: String,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -137,14 +148,41 @@ pub(crate) async fn show_registration_page(hb: web::Data<Handlebars<'_>>, info: 
     HttpResponse::Ok().body(body)
 }
 
-pub(crate) async fn process_registration(hb: web::Data<Handlebars<'_>>, pool: web::Data<DbPool>) -> HttpResponse {
-    let data = json!({
-        "error": false,
-        "alreadyRegisteredError": false
-    });
-    let body = hb.render("registration_processed", &data).unwrap();
+pub(crate) async fn process_registration(hb: web::Data<Handlebars<'_>>, pool: web::Data<DbPool>,  info: web::Form<RegistrationInfo>) -> HttpResponse {
+    let mut query_string = "".to_string();
+    // check database if user exists
+    let username = info.username.clone();
+    let user: Result<QueryResult<User>, BlockingError<DbError>> = web::block(move || {
+        let conn = pool.get().unwrap();
+        let user = tusee_users.filter( email.eq(&username)).first::<User>(&conn);
+        Ok(user)
+    }).await;
 
-    return HttpResponse::Found().header(http::header::LOCATION, "/dashboard").finish();
+    if let Ok(user_result) = user {
+        if let Err(_) = user_result {
+            // if user doesn't exists, create user
+            let salt = SaltString::generate(&mut OsRng);
+            // Argon2 with default params (Argon2id v19)
+            let argon2 = Argon2::default();
+
+            // Hash password to PHC string ($argon2id$v=19$...)
+            let password_hash = argon2.hash_password((&info.password).as_ref(), &salt)?.to_string();
+            let res = insert_into(tusee_users)
+                .values(uuid.eq(Uuid::new_v4().to_string(), email.eq(&info.username), display_name.eq(&info.name), password.eq(password_hash)))
+                .execute();
+            if let Ok(_) = res {
+                return HttpResponse::Found().header(http::header::LOCATION, "/login").finish();
+            } else {
+                query_string = "error".to_string();
+            }
+        } else {
+            query_string = "already_registered".to_string();
+        }
+    } else {
+        query_string = "error".to_string();
+    }
+
+    HttpResponse::Found().header(http::header::LOCATION, format!("/register?{}", query_string)).finish()
 }
 
 pub(crate) async fn show_setup_totp_page(req: HttpRequest, hb: web::Data<Handlebars<'_>>) -> HttpResponse {
