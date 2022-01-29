@@ -1657,17 +1657,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "otpauth"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "332a1c0711fb1d02995a1b0bed2c747d0417d7d530bfc2184e1cfd24e3ad32fe"
-dependencies = [
- "base32",
- "byteorder",
- "ring",
-]
-
-[[package]]
 name = "parking_lot"
 version = "0.11.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2167,20 +2156,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ring"
-version = "0.14.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "426bc186e3e95cac1e4a4be125a4aca7e84c2d616ffc02244eef36e2a60a093c"
-dependencies = [
- "cc",
- "lazy_static",
- "libc",
- "spin",
- "untrusted",
- "winapi 0.3.9",
-]
-
-[[package]]
 name = "rustc_version"
 version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2358,6 +2333,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "sha-1"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "028f48d513f9678cda28f6e4064755b3fbb2af6acd672f2c209b62323f7aea0f"
+dependencies = [
+ "cfg-if 1.0.0",
+ "cpufeatures",
+ "digest 0.10.1",
+]
+
+[[package]]
 name = "sha1"
 version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2430,12 +2416,6 @@ dependencies = [
  "libc",
  "winapi 0.3.9",
 ]
-
-[[package]]
-name = "spin"
-version = "0.5.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6e63cff320ae2c57904679ba7cb63280a3dc4613885beafb148ee7bf9aa9042d"
 
 [[package]]
 name = "standback"
@@ -2725,6 +2705,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "totp-rs"
+version = "0.7.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9e160ae928ed3ed45f89e79183831abcc6822c7ac58fb7b3f275d77004157ea8"
+dependencies = [
+ "base32",
+ "base64",
+ "hmac",
+ "image",
+ "qrcode",
+ "sha-1 0.10.0",
+ "sha2",
+]
+
+[[package]]
 name = "tracing"
 version = "0.1.29"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2802,21 +2797,18 @@ dependencies = [
  "actix-web",
  "aes-gcm",
  "argon2",
- "base64",
  "diesel",
  "envy",
  "handlebars",
- "image",
  "josekit",
  "justconfig",
  "lettre",
- "otpauth",
  "postgres",
  "postgres-types",
- "qrcode",
  "rand_core 0.6.3",
  "serde",
  "serde_json",
+ "totp-rs",
  "validator",
 ]
 
@@ -2868,12 +2860,6 @@ dependencies = [
  "generic-array 0.14.5",
  "subtle",
 ]
-
-[[package]]
-name = "untrusted"
-version = "0.6.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "55cd1f4b4e96b46aeb8d4855db4a7a9bd96eeeb5c6a1ab54593328761642ce2f"
 
 [[package]]
 name = "url"

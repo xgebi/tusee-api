@@ -27,8 +27,7 @@ use crate::utilities::configuration::Configuration;
 use std::time::{SystemTime, UNIX_EPOCH};
 use image::Luma;
 use josekit::jwe::JweDecrypter;
-use otpauth::TOTP;
-use qrcode::QrCode;
+use totp_rs::{Algorithm, TOTP};
 
 type DbPool = r2d2::Pool<ConnectionManager<PgConnection>>;
 
@@ -143,32 +142,46 @@ pub(crate) async fn process_registration(hb: web::Data<Handlebars<'_>>, pool: we
 
 pub(crate) async fn show_setup_totp_page(req: HttpRequest, hb: web::Data<Handlebars<'_>>) -> HttpResponse {
     let conf = Configuration::new();
+    let mut qr_verification_failed = false;
+    if let Some(_) = req.query_string().find_substring("qrerr=") {
+        qr_verification_failed = true;
+    }
     if let Some(request_cookie) = req.cookie("token") {
         if let Ok(decrypter) = A128GCMKW.decrypter_from_bytes(conf.get_secret().as_bytes()) {
             let (payload, header) = jwt::decode_with_decrypter(&request_cookie, &decrypter).unwrap();
-            println!("{}", payload.subject);
-            let auth = TOTP::new(conf.get_secret());
-            let qr_image = format!("data:image/png;base64,{}", auth.to_uri("", conf.get_url().as_str()));
+            let token: Token = serde_json::from_str(&payload.subject().unwrap()).unwrap();
+            let totp = totp_factory(conf.get_secret());
+            let qr_image =  format!("data:image/png;base64,{}", totp.get_qr(token.email.as_str(), conf.get_url().as_str()).unwrap());
+
+            let data = json!({
+                "verification_failed_error": qr_verification_failed,
+                "qr_image": qr_image,
+            });
+            let body = hb.render("setup_totp_page", &data).unwrap();
+
+            return HttpResponse::Ok().body(body);
         }
     }
 
     let data = json!({
         "error": false,
+        "qr_error": qr_verification_failed,
     });
     let body = hb.render("setup_totp_page", &data).unwrap();
 
     HttpResponse::Ok().body(body)
 }
 
-fn create_qr_image(to_encode: String) -> String {
-    let code = QrCode::new(&to_encode)?;
-    let mut vec = Vec::new();
-    let encoder = image::png::PngEncoder::new(&mut vec);
-    encoder.encode(
-        code.render::<Luma<u8>>().build().as_ref(),
-        ((code.width() + 8) * 8) as u32,
-        ((code.width() + 8) * 8) as u32,
-        image::ColorType::L8,
-    )?;
-    base64::encode(vec)
+pub(crate) fn process_mfa_setup(pool: web::Data<DbPool>) -> HttpResponse {
+    return HttpResponse::Found().header(http::header::LOCATION, "/dashboard").finish();
+}
+
+fn totp_factory(secret: String) -> TOTP {
+    TOTP::new(
+        Algorithm::SHA1,
+        6,
+        1,
+        30,
+        Vec::from(secret),
+    )
 }
