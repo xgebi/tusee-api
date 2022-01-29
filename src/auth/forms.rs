@@ -25,7 +25,6 @@ use diesel::r2d2::{self, Error as DbError, ConnectionManager};
 use crate::auth::token::Token;
 use crate::utilities::configuration::Configuration;
 use std::time::{SystemTime, UNIX_EPOCH};
-use image::Luma;
 use josekit::jwe::JweDecrypter;
 use totp_rs::{Algorithm, TOTP};
 
@@ -35,6 +34,11 @@ type DbPool = r2d2::Pool<ConnectionManager<PgConnection>>;
 pub struct LoginInfo {
     username: String,
     password: String,
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
+pub struct TotpToken {
+    token: String,
 }
 
 const FIVE_MINUTES_SECS: u64 = 60 * 10;
@@ -115,12 +119,15 @@ pub(crate) async fn login_user(pool: web::Data<DbPool>, hb: web::Data<Handlebars
     Ok(HttpResponse::Ok().body(body))
 }
 
-pub(crate) async fn show_registration_page(hb: web::Data<Handlebars<'_>>) -> HttpResponse {
-    let already_registered = false;
-    let general_registration_error = false;
-    // check whether user is already registered
-    // if not register user
-    // after successful registration redirect to login
+pub(crate) async fn show_registration_page(hb: web::Data<Handlebars<'_>>, info: web::Form<LoginInfo>) -> HttpResponse {
+    let mut already_registered = false;
+    let mut general_registration_error = false;
+    if let Some(_) = req.query_string().find_substring("inuse=") {
+        already_registered = true;
+    }
+    if let Some(_) = req.query_string().find_substring("error=") {
+        general_registration_error = true;
+    }
     let data = json!({
         "error": general_registration_error,
         "alreadyRegisteredError": already_registered
@@ -137,7 +144,7 @@ pub(crate) async fn process_registration(hb: web::Data<Handlebars<'_>>, pool: we
     });
     let body = hb.render("registration_processed", &data).unwrap();
 
-    HttpResponse::Ok().body(body)
+    return HttpResponse::Found().header(http::header::LOCATION, "/dashboard").finish();
 }
 
 pub(crate) async fn show_setup_totp_page(req: HttpRequest, hb: web::Data<Handlebars<'_>>) -> HttpResponse {
@@ -172,8 +179,18 @@ pub(crate) async fn show_setup_totp_page(req: HttpRequest, hb: web::Data<Handleb
     HttpResponse::Ok().body(body)
 }
 
-pub(crate) fn process_mfa_setup(pool: web::Data<DbPool>) -> HttpResponse {
-    return HttpResponse::Found().header(http::header::LOCATION, "/dashboard").finish();
+pub(crate) fn process_mfa_setup(pool: web::Data<DbPool>,  totp_token: web::Form<TotpToken>) -> HttpResponse {
+    let conf = Configuration::new();
+    let totp = totp_factory(conf.get_secret());
+    if totp.check(&totp_token.token, SystemTime::now()
+        .duration_since(SystemTime::UNIX_EPOCH).unwrap()
+        .as_secs()) {
+        return HttpResponse::Found().header(http::header::LOCATION, "/dashboard").finish();
+    }
+    let mut response = HttpResponse::new(StatusCode::UNAUTHORIZED);
+    response.del_cookie("token");
+    let mut response_builder = HttpResponse::build_from(response);
+    response_builder.header(http::header::LOCATION, "/login").finish()
 }
 
 fn totp_factory(secret: String) -> TOTP {
