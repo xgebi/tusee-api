@@ -14,6 +14,7 @@ mod models;
 pub(crate) mod schema;
 mod home;
 mod auth;
+mod errors;
 
 use diesel::prelude::*;
 use diesel::pg::PgConnection;

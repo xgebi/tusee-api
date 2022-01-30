@@ -31,6 +31,7 @@ use totp_rs::{Algorithm, TOTP};
 use crate::schema::tusee_settings::dsl::tusee_settings;
 use crate::schema::tusee_users::{display_name, email, password, user_uuid};
 use uuid::Uuid;
+use crate::errors::user_management_errors::RegistrationError;
 
 type DbPool = r2d2::Pool<ConnectionManager<PgConnection>>;
 
@@ -133,10 +134,10 @@ pub(crate) async fn login_user(pool: web::Data<DbPool>, hb: web::Data<Handlebars
 pub(crate) async fn show_registration_page(req: HttpRequest, hb: web::Data<Handlebars<'_>>, info: web::Form<LoginInfo>) -> HttpResponse {
     let mut already_registered = false;
     let mut general_registration_error = false;
-    if let Some(_) = req.query_string().to_string().find("inuse=") {
+    if let Some(_) = req.query_string().to_string().find("err=already_registered") {
         already_registered = true;
     }
-    if let Some(_) = req.query_string().to_string().find("error=") {
+    if let Some(_) = req.query_string().to_string().find("err=database_error") {
         general_registration_error = true;
     }
     let data = json!({
@@ -149,42 +150,54 @@ pub(crate) async fn show_registration_page(req: HttpRequest, hb: web::Data<Handl
 }
 
 pub(crate) async fn process_registration(hb: web::Data<Handlebars<'_>>, pool: web::Data<DbPool>,  info: web::Form<RegistrationInfo>) -> HttpResponse {
-    let mut query_string = "".to_string();
     // check database if user exists
     let username = info.username.clone();
-    let user: Result<QueryResult<User>, BlockingError<DbError>> = web::block(move || {
+    let user_registered = web::block(move || {
         let conn = pool.get().unwrap();
-        let user = tusee_users.filter( email.eq(&username)).first::<User>(&conn);
-        Ok(user)
-    }).await;
+        let found_user = tusee_users.filter( email.eq(&username)).first::<User>(&conn);
 
-    if let Ok(user_result) = user {
-        if let Err(_) = user_result {
-            // if user doesn't exists, create user
+        if let Err(_) = found_user {
             let salt = SaltString::generate(&mut OsRng);
             // Argon2 with default params (Argon2id v19)
             let argon2 = Argon2::default();
 
             // Hash password to PHC string ($argon2id$v=19$...)
             let password_hash = argon2.hash_password((&info.password).as_ref(), &salt).unwrap().to_string();
-            let conn = pool.get().unwrap();
 
             let res = insert_into(tusee_users)
                 .values((user_uuid.eq(Uuid::new_v4().to_string()), email.eq(&info.username), display_name.eq(&info.name), password.eq(password_hash)))
                 .execute(&conn);
-            if let Ok(_) = res {
-                return HttpResponse::Found().header(http::header::LOCATION, "/login").finish();
-            } else {
-                query_string = "error".to_string();
-            }
-        } else {
-            query_string = "already_registered".to_string();
-        }
-    } else {
-        query_string = "error".to_string();
-    }
 
-    HttpResponse::Found().header(http::header::LOCATION, format!("/register?{}", query_string)).finish()
+            if let Ok(_) = res {
+                return Ok(());
+            }
+            return Err(RegistrationError::DatabaseError);
+        }
+        Err(RegistrationError::AlreadyRegistered)
+    }).await;
+
+    match user_registered {
+        Ok(_) => {
+            HttpResponse::Found().header(http::header::LOCATION, "/login").finish()
+        }
+        Err(blocking_error) => {
+            match blocking_error {
+                BlockingError::Error(registration_error) => {
+                    match registration_error {
+                        RegistrationError::AlreadyRegistered => {
+                            HttpResponse::Found().header(http::header::LOCATION, "/register?err=already_registered").finish()
+                        }
+                        RegistrationError::DatabaseError => {
+                            HttpResponse::Found().header(http::header::LOCATION, "/register?err=database_error").finish()
+                        }
+                    }
+                }
+                BlockingError::Canceled => {
+                    HttpResponse::Found().header(http::header::LOCATION, "/register?err=database_error").finish()
+                }
+            }
+        }
+    }
 }
 
 pub(crate) async fn show_setup_totp_page(req: HttpRequest, hb: web::Data<Handlebars<'_>>) -> HttpResponse {

@@ -699,6 +699,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "custom_error"
+version = "1.9.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4f8a51dd197fa6ba5b4dc98a990a43cc13693c23eb0089ebb0fcc1f04152bca6"
+
+[[package]]
 name = "deflate"
 version = "0.8.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2797,6 +2803,7 @@ dependencies = [
  "actix-web",
  "aes-gcm",
  "argon2",
+ "custom_error",
  "diesel",
  "envy",
  "handlebars",
