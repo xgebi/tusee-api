@@ -29,7 +29,7 @@ use diesel::insert_into;
 use josekit::jwe::JweDecrypter;
 use totp_rs::{Algorithm, TOTP};
 use crate::schema::tusee_settings::dsl::tusee_settings;
-use crate::schema::tusee_users::{display_name, email, password, uuid};
+use crate::schema::tusee_users::{display_name, email, password, user_uuid};
 use uuid::Uuid;
 
 type DbPool = r2d2::Pool<ConnectionManager<PgConnection>>;
@@ -130,13 +130,13 @@ pub(crate) async fn login_user(pool: web::Data<DbPool>, hb: web::Data<Handlebars
     Ok(HttpResponse::Ok().body(body))
 }
 
-pub(crate) async fn show_registration_page(hb: web::Data<Handlebars<'_>>, info: web::Form<LoginInfo>) -> HttpResponse {
+pub(crate) async fn show_registration_page(req: HttpRequest, hb: web::Data<Handlebars<'_>>, info: web::Form<LoginInfo>) -> HttpResponse {
     let mut already_registered = false;
     let mut general_registration_error = false;
-    if let Some(_) = req.query_string().find_substring("inuse=") {
+    if let Some(_) = req.query_string().to_string().find("inuse=") {
         already_registered = true;
     }
-    if let Some(_) = req.query_string().find_substring("error=") {
+    if let Some(_) = req.query_string().to_string().find("error=") {
         general_registration_error = true;
     }
     let data = json!({
@@ -166,10 +166,12 @@ pub(crate) async fn process_registration(hb: web::Data<Handlebars<'_>>, pool: we
             let argon2 = Argon2::default();
 
             // Hash password to PHC string ($argon2id$v=19$...)
-            let password_hash = argon2.hash_password((&info.password).as_ref(), &salt)?.to_string();
+            let password_hash = argon2.hash_password((&info.password).as_ref(), &salt).unwrap().to_string();
+            let conn = pool.get().unwrap();
+
             let res = insert_into(tusee_users)
-                .values(uuid.eq(Uuid::new_v4().to_string(), email.eq(&info.username), display_name.eq(&info.name), password.eq(password_hash)))
-                .execute();
+                .values((user_uuid.eq(Uuid::new_v4().to_string()), email.eq(&info.username), display_name.eq(&info.name), password.eq(password_hash)))
+                .execute(&conn);
             if let Ok(_) = res {
                 return HttpResponse::Found().header(http::header::LOCATION, "/login").finish();
             } else {
@@ -188,12 +190,12 @@ pub(crate) async fn process_registration(hb: web::Data<Handlebars<'_>>, pool: we
 pub(crate) async fn show_setup_totp_page(req: HttpRequest, hb: web::Data<Handlebars<'_>>) -> HttpResponse {
     let conf = Configuration::new();
     let mut qr_verification_failed = false;
-    if let Some(_) = req.query_string().find_substring("qrerr=") {
+    if let Some(_) = req.query_string().to_string().find("qrerr=") {
         qr_verification_failed = true;
     }
     if let Some(request_cookie) = req.cookie("token") {
         if let Ok(decrypter) = A128GCMKW.decrypter_from_bytes(conf.get_secret().as_bytes()) {
-            let (payload, header) = jwt::decode_with_decrypter(&request_cookie, &decrypter).unwrap();
+            let (payload, header) = jwt::decode_with_decrypter(&(request_cookie.value()), &decrypter).unwrap();
             let token: Token = serde_json::from_str(&payload.subject().unwrap()).unwrap();
             let totp = totp_factory(conf.get_secret());
             let qr_image =  format!("data:image/png;base64,{}", totp.get_qr(token.email.as_str(), conf.get_url().as_str()).unwrap());

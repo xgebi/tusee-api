@@ -1,6 +1,6 @@
 table! {
-    tusee_access_audit_log (uuid) {
-        uuid -> Varchar,
+    tusee_access_audit_log (entry_uuid) {
+        entry_uuid -> Varchar,
         tusee_user -> Varchar,
         ip -> Varchar,
         event -> Varchar,
@@ -8,16 +8,16 @@ table! {
 }
 
 table! {
-    tusee_available_user_boards (uuid) {
-        uuid -> Varchar,
+    tusee_available_user_boards (board_uuid) {
+        board_uuid -> Varchar,
         tusee_user -> Varchar,
         board -> Varchar,
     }
 }
 
 table! {
-    tusee_boards (uuid) {
-        uuid -> Varchar,
+    tusee_boards (board_uuid) {
+        board_uuid -> Varchar,
         name -> Nullable<Text>,
         description -> Nullable<Text>,
         owner -> Varchar,
@@ -25,16 +25,16 @@ table! {
 }
 
 table! {
-    tusee_encrypted_keys (uuid) {
-        uuid -> Varchar,
+    tusee_encrypted_keys (key_uuid) {
+        key_uuid -> Varchar,
         tusee_user -> Varchar,
         key -> Text,
     }
 }
 
 table! {
-    tusee_permissions_audit_log (uuid) {
-        uuid -> Varchar,
+    tusee_permissions_audit_log (entry_uuid) {
+        entry_uuid -> Varchar,
         tusee_user -> Varchar,
         ip -> Varchar,
         event -> Varchar,
@@ -42,8 +42,8 @@ table! {
 }
 
 table! {
-    tusee_scheduled_blocks (uuid) {
-        uuid -> Varchar,
+    tusee_scheduled_blocks (block_uuid) {
+        block_uuid -> Varchar,
         task -> Varchar,
         start_time -> Text,
         end_time -> Text,
@@ -60,8 +60,8 @@ table! {
 }
 
 table! {
-    tusee_tasks (uuid) {
-        uuid -> Varchar,
+    tusee_tasks (task_uuid) {
+        task_uuid -> Varchar,
         creator -> Varchar,
         board -> Varchar,
         description -> Text,
@@ -71,8 +71,8 @@ table! {
 }
 
 table! {
-    tusee_users (uuid) {
-        uuid -> Varchar,
+    tusee_users (user_uuid) {
+        user_uuid -> Varchar,
         display_name -> Text,
         password -> Varchar,
         email -> Varchar,
