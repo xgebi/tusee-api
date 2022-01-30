@@ -3,7 +3,6 @@ use actix_web::{get, web, HttpRequest};
 use actix_web::{middleware, App, Error, HttpResponse, HttpServer};
 use handlebars::Handlebars;
 
-#[get("/")]
 pub(crate) async fn process_home(hb: web::Data<Handlebars<'_>>) -> HttpResponse {
     // Check for jwt cookie
     // validate cookie

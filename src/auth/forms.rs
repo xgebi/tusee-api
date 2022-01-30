@@ -55,7 +55,6 @@ pub struct TotpToken {
 
 const FIVE_MINUTES_SECS: u64 = 60 * 10;
 
-#[get("/login")]
 pub(crate) async fn show_login_page(hb: web::Data<Handlebars<'_>>) -> HttpResponse {
     let data = json!({
         "error": false,
@@ -232,7 +231,7 @@ pub(crate) async fn show_setup_totp_page(req: HttpRequest, hb: web::Data<Handleb
     HttpResponse::Ok().body(body)
 }
 
-pub(crate) fn process_mfa_setup(pool: web::Data<DbPool>,  totp_token: web::Form<TotpToken>) -> HttpResponse {
+pub(crate) fn process_totp_setup(pool: web::Data<DbPool>,  totp_token: web::Form<TotpToken>) -> HttpResponse {
     let conf = Configuration::new();
     let totp = totp_factory(conf.get_secret());
     if totp.check(&totp_token.token, SystemTime::now()
