@@ -19,3 +19,13 @@ This is, hopefully, a self-deprecating file.
   - POST
 - `/dashboard`
   - GET
+- `/boards`
+  - GET
+- `/board`
+  - GET
+  - PUT
+  - POST
+- `/task`
+  - GET
+  - POST
+  - PUT

@@ -76,9 +76,12 @@ pub(crate) async fn login_user(pool: web::Data<DbPool>, hb: web::Data<Handlebars
     }).await;
 
     if let Ok(user_result) = user {
+        println!("user_result");
         if let Ok(user_query) = user_result {
+            println!("user_query");
             let hashed_password = PasswordHash::new(&*user_query.password).unwrap();
             if let Ok(_) = Argon2::default().verify_password(info.password.as_ref(), &hashed_password) {
+                println!("verified");
                 let my_claim = Token {
                     email: info.username.to_owned(),
                     password: info.password.to_owned(),
@@ -94,8 +97,11 @@ pub(crate) async fn login_user(pool: web::Data<DbPool>, hb: web::Data<Handlebars
                 payload.set_subject(serde_json::to_string(&my_claim).unwrap());
 
                 // Encrypting JWT
-                if let Ok(encrypter) = A128GCMKW.encrypter_from_bytes(conf.get_secret().as_bytes()) {
+                println!("{:?}", A128GCMKW.encrypter_from_bytes(conf.get_secret()));
+                if let Ok(encrypter) = A128GCMKW.encrypter_from_bytes(conf.get_secret()) {
+                    println!("encrypter");
                     if let Ok(jwt) = jwt::encode_with_encrypter(&payload, &header, &encrypter) {
+                        println!("jwt");
                         let cookie = Cookie::build("token", jwt)
                             .domain(conf.get_url())
                             .path("/")
@@ -105,17 +111,23 @@ pub(crate) async fn login_user(pool: web::Data<DbPool>, hb: web::Data<Handlebars
 
                         let mut response = HttpResponse::new(StatusCode::FOUND);
                         if let Ok(_) = response.add_cookie(&cookie) {
+                            println!("added cookie");
                             let mut response_builder = HttpResponse::build_from(response);
                             // Prompt setting up TOTP two factor authentication during first login
                             if user_query.first_login {
-                                return Ok(response_builder.header(http::header::LOCATION, "/setup-totp").finish());
+                                return Ok(response_builder.header(http::header::LOCATION, "/totp-setup").finish());
                             }
+
                             // add if for set up totp
-                            return Ok(response_builder.header(http::header::LOCATION, "/check-totp").finish());
+                            return Ok(response_builder.header(http::header::LOCATION, "/totp-verify").finish());
                             // Without totp
                             return Ok(response_builder.header(http::header::LOCATION, "/dashboard").finish());
                         }
+                    } else {
+                        println!("failed jwt");
                     }
+                } else {
+                    println!("failed encrypter");
                 }
             }
         }
@@ -130,7 +142,7 @@ pub(crate) async fn login_user(pool: web::Data<DbPool>, hb: web::Data<Handlebars
     Ok(HttpResponse::Ok().body(body))
 }
 
-pub(crate) async fn show_registration_page(req: HttpRequest, hb: web::Data<Handlebars<'_>>, info: web::Form<LoginInfo>) -> HttpResponse {
+pub(crate) async fn show_registration_page(req: HttpRequest, hb: web::Data<Handlebars<'_>>) -> HttpResponse {
     let mut already_registered = false;
     let mut general_registration_error = false;
     if let Some(_) = req.query_string().to_string().find("err=already_registered") {

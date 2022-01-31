@@ -79,6 +79,8 @@ table! {
         token -> Varchar,
         expiry_date -> Float8,
         first_login -> Bool,
+        uses_totp -> Bool,
+        totp_secret -> Varchar,
     }
 }
 

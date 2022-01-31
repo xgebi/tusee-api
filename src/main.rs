@@ -77,7 +77,6 @@ async fn main() -> std::io::Result<()> {
         .unwrap();
     let handlebars_ref = web::Data::new(handlebars);
     let config = Configuration::new();
-    println!("{:?}", config.get_database());
     let manager = ConnectionManager::<PgConnection>::new(config.get_database());
     let pool = r2d2::Pool::builder()
         .build(manager)
