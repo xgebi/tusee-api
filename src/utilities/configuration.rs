@@ -8,6 +8,7 @@ pub(crate) struct Configuration {
     database: String,
     url: String,
     secret: String,
+    cookie_secret: String,
 }
 
 impl Configuration {
@@ -20,6 +21,7 @@ impl Configuration {
             database: conf.get(conf.root().push("database")).value().unwrap(),
             url: conf.get(conf.root().push("url")).value().unwrap(),
             secret: conf.get(conf.root().push("secret")).value().unwrap(),
+            cookie_secret: conf.get(conf.root().push("cookie_secret")).value().unwrap() // Probably should do a check so it's 16 characters :/
         }
     }
 
@@ -33,5 +35,9 @@ impl Configuration {
 
     pub(crate) fn get_secret(&self) -> String {
         return self.secret.clone();
+    }
+
+    pub(crate) fn get_cookie_secret(&self) -> String {
+        return self.cookie_secret.clone();
     }
 }

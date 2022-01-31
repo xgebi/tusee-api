@@ -31,10 +31,10 @@ use totp_rs::{Algorithm, TOTP};
 use crate::schema::tusee_settings::dsl::tusee_settings;
 use crate::schema::tusee_users::{display_name, email, password, totp_secret, user_uuid};
 use uuid::Uuid;
-use crate::errors::user_management_errors::RegistrationError;
+use crate::errors::user_management_errors::{CredentialsError, RegistrationError};
 use rand::{thread_rng, Rng};
 use rand::distributions::Alphanumeric;
-use crate::utilities::utilities::encrypt_token;
+use crate::utilities::utilities::{decrypt_token, encrypt_token};
 
 type DbPool = r2d2::Pool<ConnectionManager<PgConnection>>;
 
@@ -91,25 +91,32 @@ pub(crate) async fn login_user(pool: web::Data<DbPool>, hb: web::Data<Handlebars
                     totp_verified: false,
                     expiry_date: SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs() * FIVE_MINUTES_SECS,
                 };
-                let conf = Configuration::new();
 
                 if let Ok(cookie) = encrypt_token(my_claim) {
-                    let mut response = HttpResponse::new(StatusCode::FOUND);
-                    if let Ok(_) = response.add_cookie(&cookie) {
-                        println!("added cookie");
-                        let mut response_builder = HttpResponse::build_from(response);
-                        // Prompt setting up TOTP two factor authentication during first login
-                        if user_query.first_login {
-                            return Ok(response_builder.header(http::header::LOCATION, "/totp-setup").finish());
+                    println!("cookie is good, {:?}", &cookie);
+                    // Prompt setting up TOTP two factor authentication during first login
+                    if user_query.first_login {
+                        println!("To first login");
+                        let mut resp = HttpResponse::build(StatusCode::FOUND)
+                            .header(http::header::LOCATION, "/totp-setup").finish();
+                        if let Ok(_) = resp.add_cookie(&cookie) {
+                            println!("{:?}", &resp);
+                            return Ok(resp);
                         }
-
+                    } else if user_query.uses_totp {
                         // add if for set up totp
-                        if user_query.uses_totp {
-                            return Ok(response_builder.header(http::header::LOCATION, "/totp-verify").finish());
-                        }
+                        return Ok(HttpResponse::build(StatusCode::FOUND)
+                            .header(http::header::LOCATION, "/totp-verify")
+                            .cookie(cookie)
+                            .finish());
+                    } else {
                         // Without totp
-                        return Ok(response_builder.header(http::header::LOCATION, "/dashboard").finish());
+                        return Ok(HttpResponse::build(StatusCode::FOUND)
+                            .cookie(cookie)
+                            .header(http::header::LOCATION, "/dashboard").finish());
                     }
+                } else {
+                    println!("Cookie is no good");
                 }
             }
         }
@@ -198,27 +205,37 @@ pub(crate) async fn process_registration(hb: web::Data<Handlebars<'_>>, pool: we
     }
 }
 
-pub(crate) async fn show_setup_totp_page(req: HttpRequest, hb: web::Data<Handlebars<'_>>) -> HttpResponse {
+pub(crate) async fn show_setup_totp_page(req: HttpRequest, hb: web::Data<Handlebars<'_>>, pool: web::Data<DbPool>) -> HttpResponse {
     let conf = Configuration::new();
     let mut qr_verification_failed = false;
     if let Some(_) = req.query_string().to_string().find("qrerr=") {
         qr_verification_failed = true;
     }
-    if let Some(request_cookie) = req.cookie("token") {
-        if let Ok(decrypter) = A128GCMKW.decrypter_from_bytes(conf.get_secret().as_bytes()) {
-            let (payload, header) = jwt::decode_with_decrypter(&(request_cookie.value()), &decrypter).unwrap();
-            let token: Token = serde_json::from_str(&payload.subject().unwrap()).unwrap();
-            let totp = totp_factory(conf.get_secret());
-            let qr_image =  format!("data:image/png;base64,{}", totp.get_qr(token.email.as_str(), conf.get_url().as_str()).unwrap());
+    println!("setup totp start");
+    if let Ok(token) = decrypt_token(req) {
+        println!("setup totp token is good");
+        let qr_image = web::block(move || {
+            let conn = pool.get().unwrap();
+            if let Ok(secret) = tusee_users.select(totp_secret).filter(email.eq(&token.email)).first::<String>(&conn) {
+                println!("setup totp got secret");
+                let totp = totp_factory(secret);
+                let qr_image_string =  format!("data:image/png;base64,{}", totp.get_qr(&token.email.as_str(), conf.get_url().as_str()).unwrap());
+                println!("{:?}", &qr_image_string);
+                return Ok(qr_image_string);
+            }
+            println!("setup totp shouldn't see this");
+            Err(CredentialsError::FailedCreatingTotpQr)
+        }).await;
 
-            let data = json!({
-                "verification_failed_error": qr_verification_failed,
-                "qr_image": qr_image,
-            });
-            let body = hb.render("setup_totp_page", &data).unwrap();
 
-            return HttpResponse::Ok().body(body);
-        }
+        let data = json!({
+            "verification_failed_error": qr_verification_failed,
+            "qr_image": qr_image.unwrap(),
+        });
+        println!("{:?}", &data);
+        let body = hb.render("setup_totp_page", &data).unwrap();
+
+        return HttpResponse::Ok().body(body);
     }
 
     let data = json!({

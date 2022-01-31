@@ -19,7 +19,8 @@ impl std::fmt::Display for RegistrationError {
 pub(crate) enum CredentialsError {
     FailedCreatingCookie,
     NonExistentCookie,
-    FailedExtractingCookie
+    FailedExtractingCookie,
+    FailedCreatingTotpQr,
 }
 
 impl std::error::Error for CredentialsError {}
@@ -29,7 +30,8 @@ impl std::fmt::Display for CredentialsError {
         match self {
             CredentialsError::FailedCreatingCookie => write!(f, "Couldn't create secured cookie."),
             CredentialsError::NonExistentCookie => write!(f, "Cookie doesn't exist."),
-            CredentialsError::FailedExtractingCookie => write!(f, "Couldn't extract secured cookie.")
+            CredentialsError::FailedExtractingCookie => write!(f, "Couldn't extract secured cookie."),
+            CredentialsError::FailedCreatingTotpQr => write!(f, "Couldn't create QR code.")
         }
     }
 }

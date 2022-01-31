@@ -7,22 +7,19 @@
 </head>
 <body>
   <main>
-    <form method="post" action="/login">
-      {{#if error}}
+    <form method="post" action="/totp-setup">
+      {{#if verification_failed_error}}
       <section>
-        Username or password are wrong
+        Verifying TOTP failed
       </section>
       {{/if}}
       <section>
-        <label for="username">Email:</label>
-        <input type="text" id="username" name="username" />
+        <img alt="QR code" src="{{ qr_image }}">
       </section>
       <section>
-        <label for="password">Password:</label>
-        <input type="password" id="password" name="password" />
-      </section>
-      <section>
-        <input type="submit" value="login" />
+        <label for="qr-code">Code:</label>
+        <input id="qr-code" type="text" name="code" />
+        <input type="submit" value="Verify" />
       </section>
     </form>
   </main>
