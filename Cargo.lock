@@ -1254,9 +1254,9 @@ checksum = "1aab8fc367588b89dcee83ab0fd66b72b50b72fa1904d7095045ace2b0c81c35"
 
 [[package]]
 name = "josekit"
-version = "0.7.4"
+version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "16e84ea7acc05b40e2fe6fa02a54b3731323c77e6015c36749f0b10c4dbbc32f"
+checksum = "b6cb4b6abed3d6e07e1eaffad132a15c2c1e60135cde68c3b689108f352fe773"
 dependencies = [
  "anyhow",
  "base64",
@@ -1264,6 +1264,7 @@ dependencies = [
  "once_cell",
  "openssl",
  "regex",
+ "serde",
  "serde_json",
  "thiserror",
  "time 0.3.7",
