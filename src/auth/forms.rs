@@ -29,9 +29,12 @@ use diesel::insert_into;
 use josekit::jwe::JweDecrypter;
 use totp_rs::{Algorithm, TOTP};
 use crate::schema::tusee_settings::dsl::tusee_settings;
-use crate::schema::tusee_users::{display_name, email, password, user_uuid};
+use crate::schema::tusee_users::{display_name, email, password, totp_secret, user_uuid};
 use uuid::Uuid;
 use crate::errors::user_management_errors::RegistrationError;
+use rand::{thread_rng, Rng};
+use rand::distributions::Alphanumeric;
+use crate::utilities::utilities::encrypt_token;
 
 type DbPool = r2d2::Pool<ConnectionManager<PgConnection>>;
 
@@ -85,49 +88,28 @@ pub(crate) async fn login_user(pool: web::Data<DbPool>, hb: web::Data<Handlebars
                 let my_claim = Token {
                     email: info.username.to_owned(),
                     password: info.password.to_owned(),
-                    mfa_verified: false,
+                    totp_verified: false,
                     expiry_date: SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs() * FIVE_MINUTES_SECS,
                 };
                 let conf = Configuration::new();
-                let mut header = JweHeader::new();
-                header.set_token_type("JWT");
-                header.set_content_encryption("A128CBC-HS256");
 
-                let mut payload = JwtPayload::new();
-                payload.set_subject(serde_json::to_string(&my_claim).unwrap());
-
-                // Encrypting JWT
-                println!("{:?}", A128GCMKW.encrypter_from_bytes(conf.get_secret()));
-                if let Ok(encrypter) = A128GCMKW.encrypter_from_bytes(conf.get_secret()) {
-                    println!("encrypter");
-                    if let Ok(jwt) = jwt::encode_with_encrypter(&payload, &header, &encrypter) {
-                        println!("jwt");
-                        let cookie = Cookie::build("token", jwt)
-                            .domain(conf.get_url())
-                            .path("/")
-                            .secure(true)
-                            .http_only(true) // this needs to be tested a bit more with fetch api
-                            .finish();
-
-                        let mut response = HttpResponse::new(StatusCode::FOUND);
-                        if let Ok(_) = response.add_cookie(&cookie) {
-                            println!("added cookie");
-                            let mut response_builder = HttpResponse::build_from(response);
-                            // Prompt setting up TOTP two factor authentication during first login
-                            if user_query.first_login {
-                                return Ok(response_builder.header(http::header::LOCATION, "/totp-setup").finish());
-                            }
-
-                            // add if for set up totp
-                            return Ok(response_builder.header(http::header::LOCATION, "/totp-verify").finish());
-                            // Without totp
-                            return Ok(response_builder.header(http::header::LOCATION, "/dashboard").finish());
+                if let Ok(cookie) = encrypt_token(my_claim) {
+                    let mut response = HttpResponse::new(StatusCode::FOUND);
+                    if let Ok(_) = response.add_cookie(&cookie) {
+                        println!("added cookie");
+                        let mut response_builder = HttpResponse::build_from(response);
+                        // Prompt setting up TOTP two factor authentication during first login
+                        if user_query.first_login {
+                            return Ok(response_builder.header(http::header::LOCATION, "/totp-setup").finish());
                         }
-                    } else {
-                        println!("failed jwt");
+
+                        // add if for set up totp
+                        if user_query.uses_totp {
+                            return Ok(response_builder.header(http::header::LOCATION, "/totp-verify").finish());
+                        }
+                        // Without totp
+                        return Ok(response_builder.header(http::header::LOCATION, "/dashboard").finish());
                     }
-                } else {
-                    println!("failed encrypter");
                 }
             }
         }
@@ -174,9 +156,14 @@ pub(crate) async fn process_registration(hb: web::Data<Handlebars<'_>>, pool: we
 
             // Hash password to PHC string ($argon2id$v=19$...)
             let password_hash = argon2.hash_password((&info.password).as_ref(), &salt).unwrap().to_string();
-
+            // TODO decide after MVP stage if this is the best approach
+            let rand_string: String = thread_rng()
+                .sample_iter(&Alphanumeric)
+                .take(16)
+                .map(char::from)
+                .collect();
             let res = insert_into(tusee_users)
-                .values((user_uuid.eq(Uuid::new_v4().to_string()), email.eq(&info.username), display_name.eq(&info.name), password.eq(password_hash)))
+                .values((user_uuid.eq(Uuid::new_v4().to_string()), email.eq(&info.username), display_name.eq(&info.name), password.eq(password_hash), totp_secret.eq(rand_string)))
                 .execute(&conn);
 
             if let Ok(_) = res {

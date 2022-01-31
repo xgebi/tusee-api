@@ -2812,6 +2812,7 @@ dependencies = [
  "lettre",
  "postgres",
  "postgres-types",
+ "rand 0.8.4",
  "rand_core 0.6.3",
  "serde",
  "serde_json",
