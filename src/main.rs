@@ -15,13 +15,14 @@ pub(crate) mod schema;
 mod home;
 mod auth;
 mod errors;
+mod repositories;
 
 use diesel::prelude::*;
 use diesel::pg::PgConnection;
 use std::env;
 
 use actix_web::{get, post, web, http, App, HttpResponse, HttpServer, Responder};
-use actix_cors::Cors;
+// use actix_cors::Cors;
 use diesel::r2d2::{self, ConnectionManager};
 use lettre::transport::smtp::authentication::Credentials;
 use lettre::{Message, SmtpTransport, Transport};
@@ -84,12 +85,13 @@ async fn main() -> std::io::Result<()> {
 
     HttpServer::new(move || {
         App::new()
-            .wrap(Cors::permissive().allowed_origin_fn(|origin, _req_head| {
-                return match origin.to_str() {
-                    Err(_) => false,
-                    Ok(val) => val.find("localhost").is_some()
-                }
-            }))
+            // CORS are not needed at this stage
+            // .wrap(Cors::permissive().allowed_origin_fn(|origin, _req_head| {
+            //     return match origin.to_str() {
+            //         Err(_) => false,
+            //         Ok(val) => val.find("localhost").is_some()
+            //     }
+            // }))
             .data(pool.clone())
             .app_data(handlebars_ref.clone())
             .route("/", web::get().to(home::home::process_home))

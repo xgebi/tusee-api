@@ -16,5 +16,4 @@ pub struct User {
     pub expiry_date: f64,
     pub(crate) first_login: bool,
     pub(crate) uses_totp: bool,
-    pub(crate) totp_secret: String,
 }

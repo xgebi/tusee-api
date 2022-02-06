@@ -1,8 +1,8 @@
+use std::error::Error;
 use actix_web::{get, web, HttpRequest, post, HttpMessage};
 #[cfg(unix)]
-use actix_web::{middleware, App, Error as ActixError, http, HttpResponse, HttpServer};
+use actix_web::{middleware, App, Error as ActixError, http, HttpResponse, HttpServer, HttpResponseBuilder};
 use actix_web::cookie::Cookie;
-use actix_web::dev::HttpResponseBuilder;
 use actix_web::error::BlockingError;
 use actix_web::http::{header, StatusCode};
 use argon2::{
@@ -29,12 +29,13 @@ use diesel::insert_into;
 use josekit::jwe::JweDecrypter;
 use totp_rs::{Algorithm, TOTP};
 use crate::schema::tusee_settings::dsl::tusee_settings;
-use crate::schema::tusee_users::{display_name, email, password, totp_secret, user_uuid};
+use crate::schema::tusee_users::{display_name, email, password, user_uuid};
 use uuid::Uuid;
 use crate::errors::user_management_errors::{CredentialsError, RegistrationError};
 use rand::{thread_rng, Rng};
 use rand::distributions::Alphanumeric;
 use crate::utilities::utilities::{decrypt_token, encrypt_token};
+use crate::repositories::user_repository::insert_user;
 
 type DbPool = r2d2::Pool<ConnectionManager<PgConnection>>;
 
@@ -45,10 +46,10 @@ pub struct LoginInfo {
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
-pub struct RegistrationInfo {
-    username: String,
-    password: String,
-    name: String,
+pub(crate) struct RegistrationInfo {
+    pub(crate) username: String,
+    pub(crate) password: String,
+    pub(crate) name: String,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -72,52 +73,54 @@ pub(crate) async fn login_user(pool: web::Data<DbPool>, hb: web::Data<Handlebars
     // validate against database
     // use web::block to offload blocking Diesel code without blocking server thread
     let username = info.username.clone();
-    let user: Result<QueryResult<User>, BlockingError<DbError>> = web::block(move || {
+    let user= web::block(move || {
         let conn = pool.get().unwrap();
         let user = tusee_users.filter(email.eq(&username)).first::<User>(&conn);
-        Ok(user)
-    }).await;
+        user
+    }).await?;
 
     if let Ok(user_result) = user {
-        println!("user_result");
-        if let Ok(user_query) = user_result {
-            println!("user_query");
-            let hashed_password = PasswordHash::new(&*user_query.password).unwrap();
-            if let Ok(_) = Argon2::default().verify_password(info.password.as_ref(), &hashed_password) {
-                println!("verified");
-                let my_claim = Token {
-                    email: info.username.to_owned(),
-                    password: info.password.to_owned(),
-                    totp_verified: false,
-                    expiry_date: SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs() * FIVE_MINUTES_SECS,
-                };
+        println!("user_query");
+        let hashed_password = PasswordHash::new(&*user_result.password).unwrap();
+        if let Ok(_) = Argon2::default().verify_password(info.password.as_ref(), &hashed_password) {
+            println!("verified");
+            let my_claim = Token {
+                email: info.username.to_owned(),
+                password: info.password.to_owned(),
+                totp_verified: false,
+                expiry_date: SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs() * FIVE_MINUTES_SECS,
+            };
 
-                if let Ok(cookie) = encrypt_token(my_claim) {
-                    println!("cookie is good, {:?}", &cookie);
-                    // Prompt setting up TOTP two factor authentication during first login
-                    if user_query.first_login {
-                        println!("To first login");
-                        let mut resp = HttpResponse::build(StatusCode::FOUND)
-                            .header(http::header::LOCATION, "/totp-setup").finish();
-                        if let Ok(_) = resp.add_cookie(&cookie) {
-                            println!("{:?}", &resp);
-                            return Ok(resp);
-                        }
-                    } else if user_query.uses_totp {
-                        // add if for set up totp
-                        return Ok(HttpResponse::build(StatusCode::FOUND)
-                            .header(http::header::LOCATION, "/totp-verify")
-                            .cookie(cookie)
-                            .finish());
-                    } else {
-                        // Without totp
-                        return Ok(HttpResponse::build(StatusCode::FOUND)
-                            .cookie(cookie)
-                            .header(http::header::LOCATION, "/dashboard").finish());
+            if let Ok(cookie) = encrypt_token(my_claim) {
+                println!("cookie is good, {:?}", &cookie);
+                // Prompt setting up TOTP two factor authentication during first login
+                if user_result.first_login {
+                    println!("To first login");
+                    let mut resp = HttpResponse::build(StatusCode::FOUND)
+                        .header(http::header::LOCATION, "/totp-setup").finish();
+                    if let Ok(_) = resp.add_cookie(&cookie) {
+                        return Ok(resp);
+                    }
+                } else if user_result.uses_totp {
+                    // add if for set up totp
+                    let mut resp = HttpResponse::build(StatusCode::FOUND)
+                        .header(http::header::LOCATION, "/totp-verify")
+                        .finish();
+                    if let Ok(_) = resp.add_cookie(&cookie) {
+                        println!("{:?}", &resp);
+                        return Ok(resp);
                     }
                 } else {
-                    println!("Cookie is no good");
+                    // Without totp
+                    let mut resp = HttpResponse::build(StatusCode::FOUND)
+                        .header(http::header::LOCATION, "/dashboard")
+                        .finish();
+                    if let Ok(_) = resp.add_cookie(&cookie) {
+                        return Ok(resp);
+                    }
                 }
+            } else {
+                println!("Cookie is no good");
             }
         }
     }
@@ -164,16 +167,13 @@ pub(crate) async fn process_registration(hb: web::Data<Handlebars<'_>>, pool: we
             // Hash password to PHC string ($argon2id$v=19$...)
             let password_hash = argon2.hash_password((&info.password).as_ref(), &salt).unwrap().to_string();
             // TODO decide after MVP stage if this is the best approach
-            let rand_string: String = thread_rng()
-                .sample_iter(&Alphanumeric)
-                .take(16)
-                .map(char::from)
-                .collect();
-            let res = insert_into(tusee_users)
-                .values((user_uuid.eq(Uuid::new_v4().to_string()), email.eq(&info.username), display_name.eq(&info.name), password.eq(password_hash), totp_secret.eq(rand_string)))
-                .execute(&conn);
+            // let rand_string: String = thread_rng()
+            //     .sample_iter(&Alphanumeric)
+            //     .take(16)
+            //     .map(char::from)
+            //     .collect();
 
-            if let Ok(_) = res {
+            if let Ok(_) = insert_user(&conn, &info, password_hash) {
                 return Ok(());
             }
             return Err(RegistrationError::DatabaseError);
@@ -182,13 +182,13 @@ pub(crate) async fn process_registration(hb: web::Data<Handlebars<'_>>, pool: we
     }).await;
 
     match user_registered {
-        Ok(_) => {
-            HttpResponse::Found().header(http::header::LOCATION, "/login").finish()
-        }
-        Err(blocking_error) => {
-            match blocking_error {
-                BlockingError::Error(registration_error) => {
-                    match registration_error {
+        Ok(result) => {
+            match result {
+                Ok(_) => {
+                    HttpResponse::Found().header(http::header::LOCATION, "/login").finish()
+                }
+                Err(err) => {
+                    match err {
                         RegistrationError::AlreadyRegistered => {
                             HttpResponse::Found().header(http::header::LOCATION, "/register?err=already_registered").finish()
                         }
@@ -197,10 +197,10 @@ pub(crate) async fn process_registration(hb: web::Data<Handlebars<'_>>, pool: we
                         }
                     }
                 }
-                BlockingError::Canceled => {
-                    HttpResponse::Found().header(http::header::LOCATION, "/register?err=database_error").finish()
-                }
             }
+        }
+        Err(_) => {
+            HttpResponse::Found().header(http::header::LOCATION, "/register?err=database_error").finish()
         }
     }
 }
@@ -213,26 +213,13 @@ pub(crate) async fn show_setup_totp_page(req: HttpRequest, hb: web::Data<Handleb
     }
     println!("setup totp start");
     if let Ok(token) = decrypt_token(req) {
-        println!("setup totp token is good");
-        let qr_image = web::block(move || {
-            let conn = pool.get().unwrap();
-            if let Ok(secret) = tusee_users.select(totp_secret).filter(email.eq(&token.email)).first::<String>(&conn) {
-                println!("setup totp got secret");
-                let totp = totp_factory(secret);
-                let qr_image_string =  format!("data:image/png;base64,{}", totp.get_qr(&token.email.as_str(), conf.get_url().as_str()).unwrap());
-                println!("{:?}", &qr_image_string);
-                return Ok(qr_image_string);
-            }
-            println!("setup totp shouldn't see this");
-            Err(CredentialsError::FailedCreatingTotpQr)
-        }).await;
-
+        let totp = totp_factory(conf.get_cookie_secret());
+        let qr_image =  format!("data:image/png;base64,{}", totp.get_qr(&token.email.as_str(), conf.get_url().as_str()).unwrap());
 
         let data = json!({
             "verification_failed_error": qr_verification_failed,
-            "qr_image": qr_image.unwrap(),
+            "qr_image": qr_image,
         });
-        println!("{:?}", &data);
         let body = hb.render("setup_totp_page", &data).unwrap();
 
         return HttpResponse::Ok().body(body);
@@ -247,18 +234,27 @@ pub(crate) async fn show_setup_totp_page(req: HttpRequest, hb: web::Data<Handleb
     HttpResponse::Ok().body(body)
 }
 
-pub(crate) fn process_totp_setup(pool: web::Data<DbPool>,  totp_token: web::Form<TotpToken>) -> HttpResponse {
+pub(crate) async fn process_totp_setup(req: HttpRequest, pool: web::Data<DbPool>,  totp_token: web::Form<TotpToken>) -> HttpResponse {
     let conf = Configuration::new();
     let totp = totp_factory(conf.get_secret());
     if totp.check(&totp_token.token, SystemTime::now()
         .duration_since(SystemTime::UNIX_EPOCH).unwrap()
         .as_secs()) {
+        // TODO update first_login to false
         return HttpResponse::Found().header(http::header::LOCATION, "/dashboard").finish();
     }
-    let mut response = HttpResponse::new(StatusCode::UNAUTHORIZED);
-    response.del_cookie("token");
-    let mut response_builder = HttpResponse::build_from(response);
-    response_builder.header(http::header::LOCATION, "/login").finish()
+    let mut response = HttpResponse::Unauthorized();
+    if let Some(mut cookie) = req.cookie("token") {
+        cookie.make_removal();
+        return response.cookie(cookie).append_header((http::header::LOCATION, "/login?error=totp")).finish();
+
+    }
+    response.append_header((http::header::LOCATION, "/login?error=totp")).finish()
+
+    // let mut response_builder = HttpResponse::build_from(response);
+    // let mut response = response_builder.header(http::header::LOCATION, "/login?error=totp").finish();
+    // response.del_cookie("token");
+    // response
 }
 
 fn totp_factory(secret: String) -> TOTP {

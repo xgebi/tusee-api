@@ -7,6 +7,5 @@ CREATE TABLE IF NOT EXISTS tusee_users (
 	token character varying(350) NOT NULL DEFAULT '',
 	expiry_date double precision NOT NULL DEFAULT 0,
 	first_login boolean NOT NULL DEFAULT TRUE,
-	uses_totp boolean NOT NULL DEFAULT FALSE,
-	totp_secret character varying(16) NOT NULL
+	uses_totp boolean NOT NULL DEFAULT FALSE
 )
