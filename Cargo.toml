@@ -14,7 +14,7 @@ postgres = "0.19.1"
 postgres-types = { version = "0.2.1", features = ["derive"] }
 actix-cors = "0.5.4"
 envy = "0.4.2"
-argon2 = "0.3.3"
+argon2 = "0.3.4"
 rand_core = { version = "0.6", features = ["std"] }
 serde_json = "1.0.79"
 aes-gcm = "0.9.4"
