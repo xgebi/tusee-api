@@ -25,4 +25,4 @@ justconfig = "1.0"
 totp-rs = { version = "~0.7", features = ["qr"] }
 uuid = { version = "0.8", features = ["serde", "v4"] }
 custom_error = "1.9.2"
-rand = "0.8.4"
+rand = "0.8.5"
