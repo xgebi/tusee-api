@@ -54,7 +54,7 @@ pub(crate) struct RegistrationInfo {
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct TotpToken {
-    token: String,
+    code: String,
 }
 
 const FIVE_MINUTES_SECS: u64 = 60 * 10;
@@ -211,7 +211,6 @@ pub(crate) async fn show_setup_totp_page(req: HttpRequest, hb: web::Data<Handleb
     if let Some(_) = req.query_string().to_string().find("qrerr=") {
         qr_verification_failed = true;
     }
-    println!("setup totp start");
     if let Ok(token) = decrypt_token(req) {
         let totp = totp_factory(conf.get_cookie_secret());
         let qr_image =  format!("data:image/png;base64,{}", totp.get_qr(&token.email.as_str(), conf.get_url().as_str()).unwrap());
@@ -237,11 +236,14 @@ pub(crate) async fn show_setup_totp_page(req: HttpRequest, hb: web::Data<Handleb
 pub(crate) async fn process_totp_setup(req: HttpRequest, pool: web::Data<DbPool>,  totp_token: web::Form<TotpToken>) -> HttpResponse {
     let conf = Configuration::new();
     let totp = totp_factory(conf.get_secret());
-    if totp.check(&totp_token.token, SystemTime::now()
+    println!("{:?}", &totp_token.code);
+    let res_check = totp.check(&totp_token.code, SystemTime::now()
         .duration_since(SystemTime::UNIX_EPOCH).unwrap()
-        .as_secs()) {
+        .as_secs());
+    println!("{}", res_check);
+    if res_check {
         // TODO update first_login to false
-        return HttpResponse::Found().header(http::header::LOCATION, "/dashboard").finish();
+        return HttpResponse::Found().append_header((http::header::LOCATION, "/dashboard")).finish();
     }
     let mut response = HttpResponse::Unauthorized();
     if let Some(mut cookie) = req.cookie("token") {
@@ -250,19 +252,15 @@ pub(crate) async fn process_totp_setup(req: HttpRequest, pool: web::Data<DbPool>
 
     }
     response.append_header((http::header::LOCATION, "/login?error=totp")).finish()
-
-    // let mut response_builder = HttpResponse::build_from(response);
-    // let mut response = response_builder.header(http::header::LOCATION, "/login?error=totp").finish();
-    // response.del_cookie("token");
-    // response
 }
 
 fn totp_factory(secret: String) -> TOTP {
-    TOTP::new(
+    let totp = TOTP::new(
         Algorithm::SHA1,
         6,
         1,
         30,
         Vec::from(secret),
-    )
+    );
+    totp
 }
