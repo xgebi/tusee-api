@@ -92,7 +92,7 @@ async fn main() -> std::io::Result<()> {
             //         Ok(val) => val.find("localhost").is_some()
             //     }
             // }))
-            .data(pool.clone())
+            .app_data(pool.clone())
             .app_data(handlebars_ref.clone())
             .route("/", web::get().to(home::home::process_home))
             .route("/login", web::get().to(auth::forms::show_login_page))
