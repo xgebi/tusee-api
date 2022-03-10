@@ -19,7 +19,7 @@ rand_core = { version = "0.6", features = ["std"] }
 serde_json = "1.0.79"
 aes-gcm = "0.9.4"
 diesel = { version = "1.4.4", features = ["postgres", "r2d2"] }
-handlebars = { version = "4.2.1", features = ["dir_source"] }
+handlebars = { version = "4.2.2", features = ["dir_source"] }
 validator = { version = "0.14", features = ["derive"] }
 justconfig = "1.0"
 totp-rs = { version = "~0.7", features = ["qr"] }
