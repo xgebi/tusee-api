@@ -12,7 +12,6 @@ mod services;
 mod utilities;
 mod models;
 pub(crate) mod schema;
-mod home;
 mod auth;
 mod errors;
 mod repositories;
@@ -27,7 +26,6 @@ use diesel::r2d2::{self, ConnectionManager};
 use lettre::transport::smtp::authentication::Credentials;
 use lettre::{Message, SmtpTransport, Transport};
 use handlebars::Handlebars;
-use crate::home::home::process_home;
 use crate::user::user::{register_user, is_registration_enabled}; // log_user_in
 use crate::auth::forms::{show_login_page, login_user};
 use serde::Deserialize;
@@ -56,10 +54,7 @@ async fn main() -> std::io::Result<()> {
             //     }
             // }))
             .app_data(pool.clone())
-            .route("/", web::get().to(home::home::process_home))
-            .route("/login", web::get().to(auth::forms::show_login_page))
             .route("/login", web::post().to(auth::forms::login_user))
-            .route("/registration", web::get().to(auth::forms::show_registration_page))
             .route("/register", web::post().to(auth::forms::process_registration))
             .route("/totp-setup", web::get().to(auth::forms::show_setup_totp_page))
             .route("/totp-setup", web::post().to(auth::forms::process_totp_setup))

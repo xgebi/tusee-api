@@ -57,15 +57,6 @@ pub struct TotpToken {
 
 const FIVE_MINUTES_SECS: u64 = 60 * 10;
 
-pub(crate) async fn show_login_page(hb: web::Data<Handlebars<'_>>) -> HttpResponse {
-    let data = json!({
-        "error": false,
-    });
-    let body = hb.render("login", &data).unwrap();
-
-    HttpResponse::Ok().body(body)
-}
-
 pub(crate) async fn login_user(pool: web::Data<DbPool>, hb: web::Data<Handlebars<'_>>, info: web::Form<LoginInfo>) -> Result<HttpResponse, BlockingError> {
     use crate::schema::tusee_users::dsl::*;
     // validate against database
@@ -130,24 +121,6 @@ pub(crate) async fn login_user(pool: web::Data<DbPool>, hb: web::Data<Handlebars
     Ok(HttpResponse::Ok().body(body))
 }
 
-pub(crate) async fn show_registration_page(req: HttpRequest, hb: web::Data<Handlebars<'_>>) -> HttpResponse {
-    let mut already_registered = false;
-    let mut general_registration_error = false;
-    if let Some(_) = req.query_string().to_string().find("err=already_registered") {
-        already_registered = true;
-    }
-    if let Some(_) = req.query_string().to_string().find("err=database_error") {
-        general_registration_error = true;
-    }
-    let data = json!({
-        "error": general_registration_error,
-        "alreadyRegisteredError": already_registered
-    });
-    let body = hb.render("registration", &data).unwrap();
-
-    HttpResponse::Ok().body(body)
-}
-
 pub(crate) async fn process_registration(hb: web::Data<Handlebars<'_>>, pool: web::Data<DbPool>,  info: web::Form<RegistrationInfo>) -> HttpResponse {
     // check database if user exists
     let username = info.username.clone();
@@ -199,34 +172,6 @@ pub(crate) async fn process_registration(hb: web::Data<Handlebars<'_>>, pool: we
             HttpResponse::Found().header(http::header::LOCATION, "/register?err=database_error").finish()
         }
     }
-}
-
-pub(crate) async fn show_setup_totp_page(req: HttpRequest, hb: web::Data<Handlebars<'_>>, pool: web::Data<DbPool>) -> HttpResponse {
-    let conf = Configuration::new();
-    let mut qr_verification_failed = false;
-    if let Some(_) = req.query_string().to_string().find("qrerr=") {
-        qr_verification_failed = true;
-    }
-    if let Ok(token) = decrypt_token(req) {
-        let totp = totp_factory(conf.get_cookie_secret());
-        let qr_image =  format!("data:image/png;base64,{}", totp.get_qr(&token.email.as_str(), conf.get_url().as_str()).unwrap());
-
-        let data = json!({
-            "verification_failed_error": qr_verification_failed,
-            "qr_image": qr_image,
-        });
-        let body = hb.render("setup_totp_page", &data).unwrap();
-
-        return HttpResponse::Ok().body(body);
-    }
-
-    let data = json!({
-        "error": false,
-        "qr_error": qr_verification_failed,
-    });
-    let body = hb.render("setup_totp_page", &data).unwrap();
-
-    HttpResponse::Ok().body(body)
 }
 
 pub(crate) async fn process_totp_setup(req: HttpRequest, pool: web::Data<DbPool>,  totp_token: web::Form<TotpToken>) -> HttpResponse {
