@@ -1,6 +1,4 @@
-use actix_web::{get, web, HttpRequest};
-#[cfg(unix)]
-use actix_web::{middleware, App, Error, HttpResponse, HttpServer};
+use actix_web::{middleware, App, HttpResponse, HttpServer, get, web, HttpRequest};
 use handlebars::Handlebars;
 
 pub(crate) async fn process_home(hb: web::Data<Handlebars<'_>>) -> HttpResponse {

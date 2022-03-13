@@ -1,7 +1,5 @@
 use std::error::Error;
-use actix_web::{get, web, HttpRequest, post, HttpMessage};
-#[cfg(unix)]
-use actix_web::{middleware, App, Error as ActixError, http, HttpResponse, HttpServer, HttpResponseBuilder};
+use actix_web::{middleware, App, http, get, web, post, HttpResponse, HttpServer, HttpResponseBuilder, HttpRequest, HttpMessage};
 use actix_web::cookie::Cookie;
 use actix_web::error::BlockingError;
 use actix_web::http::{header, StatusCode};
@@ -68,7 +66,7 @@ pub(crate) async fn show_login_page(hb: web::Data<Handlebars<'_>>) -> HttpRespon
     HttpResponse::Ok().body(body)
 }
 
-pub(crate) async fn login_user(pool: web::Data<DbPool>, hb: web::Data<Handlebars<'_>>, info: web::Form<LoginInfo>) -> Result<HttpResponse, ActixError> {
+pub(crate) async fn login_user(pool: web::Data<DbPool>, hb: web::Data<Handlebars<'_>>, info: web::Form<LoginInfo>) -> Result<HttpResponse, BlockingError> {
     use crate::schema::tusee_users::dsl::*;
     // validate against database
     // use web::block to offload blocking Diesel code without blocking server thread
@@ -97,14 +95,14 @@ pub(crate) async fn login_user(pool: web::Data<DbPool>, hb: web::Data<Handlebars
                 if user_result.first_login {
                     println!("To first login");
                     let mut resp = HttpResponse::build(StatusCode::FOUND)
-                        .header(http::header::LOCATION, "/totp-setup").finish();
+                        .append_header((http::header::LOCATION, "/totp-setup")).finish();
                     if let Ok(_) = resp.add_cookie(&cookie) {
                         return Ok(resp);
                     }
                 } else if user_result.uses_totp {
                     // add if for set up totp
                     let mut resp = HttpResponse::build(StatusCode::FOUND)
-                        .header(http::header::LOCATION, "/totp-verify")
+                        .append_header((http::header::LOCATION, "/totp-verify"))
                         .finish();
                     if let Ok(_) = resp.add_cookie(&cookie) {
                         println!("{:?}", &resp);
@@ -113,11 +111,9 @@ pub(crate) async fn login_user(pool: web::Data<DbPool>, hb: web::Data<Handlebars
                 } else {
                     // Without totp
                     let mut resp = HttpResponse::build(StatusCode::FOUND)
-                        .header(http::header::LOCATION, "/dashboard")
+                        .append_header((http::header::LOCATION, "/dashboard"))
                         .finish();
-                    if let Ok(_) = resp.add_cookie(&cookie) {
-                        return Ok(resp);
-                    }
+                    return Ok(resp);
                 }
             } else {
                 println!("Cookie is no good");

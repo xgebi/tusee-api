@@ -38,45 +38,8 @@ struct Config {
     database: String,
 }
 
-#[post("/echo")]
-async fn echo(req_body: String) -> impl Responder {
-    HttpResponse::Ok().body(req_body)
-}
-
-async fn manual_hello() -> impl Responder {
-    HttpResponse::Ok().body("Hey there!")
-}
-
-#[post("/send-email")]
-async fn send_email(req_body: String) -> impl Responder {
-    println!("Sending email");
-    let email = Message::builder()
-        .from("NoBody <nobody@domain.tld>".parse().unwrap())
-        .reply_to("Yuin <yuin@domain.tld>".parse().unwrap())
-        .to("Hei <hei@domain.tld>".parse().unwrap())
-        .subject("Happy new year")
-        .body(req_body)
-        .unwrap();
-
-    let creds = Credentials::new("smtp_username".to_string(), "smtp_password".to_string());
-
-    // Open a remote connection to localhost
-    let mailer = SmtpTransport::unencrypted_localhost();
-
-    // Send the email
-    return match mailer.send(&email) {
-        Ok(_) => HttpResponse::Ok().body("Email sent"),
-        Err(e) => HttpResponse::Ok().body(format!("Could not send email: {:?}", e)),
-    }
-}
-
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    let mut handlebars = Handlebars::new();
-    handlebars
-        .register_templates_directory(".html", "./static/templates")
-        .unwrap();
-    let handlebars_ref = web::Data::new(handlebars);
     let config = Configuration::new();
     let manager = ConnectionManager::<PgConnection>::new(config.get_database());
     let pool = r2d2::Pool::builder()
@@ -93,7 +56,6 @@ async fn main() -> std::io::Result<()> {
             //     }
             // }))
             .app_data(pool.clone())
-            .app_data(handlebars_ref.clone())
             .route("/", web::get().to(home::home::process_home))
             .route("/login", web::get().to(auth::forms::show_login_page))
             .route("/login", web::post().to(auth::forms::login_user))
