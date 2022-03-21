@@ -11,7 +11,6 @@ use argon2::{
     Argon2
 };
 use diesel::associations::HasTable;
-use handlebars::Handlebars;
 use serde::{Deserialize, Serialize};
 use serde_json;
 use crate::models::user::User;
@@ -57,7 +56,7 @@ pub struct TotpToken {
 
 const FIVE_MINUTES_SECS: u64 = 60 * 10;
 
-pub(crate) async fn login_user(pool: web::Data<DbPool>, hb: web::Data<Handlebars<'_>>, info: web::Form<LoginInfo>) -> Result<HttpResponse, BlockingError> {
+pub(crate) async fn login_user(pool: web::Data<DbPool>, info: web::Json<LoginInfo>) -> Result<HttpResponse, BlockingError> {
     use crate::schema::tusee_users::dsl::*;
     // validate against database
     // use web::block to offload blocking Diesel code without blocking server thread
@@ -85,25 +84,20 @@ pub(crate) async fn login_user(pool: web::Data<DbPool>, hb: web::Data<Handlebars
                 // Prompt setting up TOTP two factor authentication during first login
                 if user_result.first_login {
                     println!("To first login");
-                    let mut resp = HttpResponse::build(StatusCode::FOUND)
-                        .append_header((http::header::LOCATION, "/totp-setup")).finish();
+                    let mut resp = HttpResponse::build(StatusCode::FOUND).finish();
                     if let Ok(_) = resp.add_cookie(&cookie) {
                         return Ok(resp);
                     }
                 } else if user_result.uses_totp {
                     // add if for set up totp
-                    let mut resp = HttpResponse::build(StatusCode::FOUND)
-                        .append_header((http::header::LOCATION, "/totp-verify"))
-                        .finish();
+                    let mut resp = HttpResponse::build(StatusCode::FOUND).finish();
                     if let Ok(_) = resp.add_cookie(&cookie) {
                         println!("{:?}", &resp);
                         return Ok(resp);
                     }
                 } else {
                     // Without totp
-                    let mut resp = HttpResponse::build(StatusCode::FOUND)
-                        .append_header((http::header::LOCATION, "/dashboard"))
-                        .finish();
+                    let mut resp = HttpResponse::build(StatusCode::FOUND).finish();
                     return Ok(resp);
                 }
             } else {
@@ -113,15 +107,10 @@ pub(crate) async fn login_user(pool: web::Data<DbPool>, hb: web::Data<Handlebars
     }
     // return error login page
 
-    let data = json!({
-        "error": true,
-    });
-    let body = hb.render("login", &data).unwrap();
-
-    Ok(HttpResponse::Ok().body(body))
+    Ok(HttpResponse::Ok().finish())
 }
 
-pub(crate) async fn process_registration(hb: web::Data<Handlebars<'_>>, pool: web::Data<DbPool>,  info: web::Form<RegistrationInfo>) -> HttpResponse {
+pub(crate) async fn process_registration(pool: web::Data<DbPool>,  info: web::Json<RegistrationInfo>) -> HttpResponse {
     // check database if user exists
     let username = info.username.clone();
     let user_registered = web::block(move || {

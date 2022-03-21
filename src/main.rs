@@ -56,7 +56,6 @@ async fn main() -> std::io::Result<()> {
             .app_data(pool.clone())
             .route("/login", web::post().to(auth::forms::login_user))
             .route("/register", web::post().to(auth::forms::process_registration))
-            .route("/totp-setup", web::get().to(auth::forms::show_setup_totp_page))
             .route("/totp-setup", web::post().to(auth::forms::process_totp_setup))
     })
         .bind("127.0.0.1:8083")?

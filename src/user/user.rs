@@ -1,6 +1,5 @@
 use std::error::Error;
 use actix_web::{get, post, web::{self, Data, ServiceConfig}, HttpRequest, HttpResponse, Responder};
-use postgres::Row;
 use serde::{Deserialize, Serialize};
 use serde_json::Result;
 use crate::models::user::User;
