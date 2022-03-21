@@ -8,9 +8,9 @@ use diesel::prelude::*;
 use crate::auth::forms::RegistrationInfo;
 use crate::models::*;
 
-pub(crate) fn insert_user(conn: &PooledConnection<ConnectionManager<PgConnection>>, info: &RegistrationInfo, password_hash: String) -> QueryResult<usize> {
+pub(crate) fn insert_user(conn: &PooledConnection<ConnectionManager<PgConnection>>, info: &RegistrationInfo, password_hash: String, id: &String) -> QueryResult<usize> {
     let res = insert_into(tusee_users)
-        .values((user_uuid.eq(Uuid::new_v4().to_string()), email.eq(&info.username), display_name.eq(&info.name), password.eq(password_hash)))
+        .values((user_uuid.eq(&id), email.eq(&info.username), display_name.eq(&info.name), password.eq(password_hash)))
         .execute(conn);
     res
 }

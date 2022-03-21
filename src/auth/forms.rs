@@ -31,6 +31,7 @@ use uuid::Uuid;
 use crate::errors::user_management_errors::{CredentialsError, RegistrationError};
 use rand::{thread_rng, Rng};
 use rand::distributions::Alphanumeric;
+use crate::repositories::key_repository::insert_key;
 use crate::utilities::utilities::{decrypt_token, encrypt_token};
 use crate::repositories::user_repository::insert_user;
 
@@ -47,6 +48,7 @@ pub(crate) struct RegistrationInfo {
     pub(crate) username: String,
     pub(crate) password: String,
     pub(crate) name: String,
+    pub(crate) key: String,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -110,7 +112,7 @@ pub(crate) async fn login_user(pool: web::Data<DbPool>, info: web::Json<LoginInf
     Ok(HttpResponse::Ok().finish())
 }
 
-pub(crate) async fn process_registration(pool: web::Data<DbPool>,  info: web::Json<RegistrationInfo>) -> HttpResponse {
+pub(crate) async fn process_registration(pool: web::Data<DbPool>, info: web::Json<RegistrationInfo>) -> HttpResponse {
     // check database if user exists
     let username = info.username.clone();
     let user_registered = web::block(move || {
@@ -130,9 +132,11 @@ pub(crate) async fn process_registration(pool: web::Data<DbPool>,  info: web::Js
             //     .take(16)
             //     .map(char::from)
             //     .collect();
-
-            if let Ok(_) = insert_user(&conn, &info, password_hash) {
-                return Ok(());
+            let id = Uuid::new_v4().to_string();
+            if let Ok(_) = insert_user(&conn, &info, password_hash, &id) {
+                if let Ok(_) = insert_key(&conn, &id, &info.key) {
+                    return Ok(());
+                }
             }
             return Err(RegistrationError::DatabaseError);
         }
