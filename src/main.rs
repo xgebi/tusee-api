@@ -19,15 +19,17 @@ mod repositories;
 use diesel::prelude::*;
 use diesel::pg::PgConnection;
 use std::env;
+use actix_cors::Cors;
 
 use actix_web::{get, post, web, http, App, HttpResponse, HttpServer, Responder};
+use actix_web::http::header;
+use diesel::dsl::all;
 // use actix_cors::Cors;
 use diesel::r2d2::{self, ConnectionManager};
 use lettre::transport::smtp::authentication::Credentials;
 use lettre::{Message, SmtpTransport, Transport};
-use handlebars::Handlebars;
 use crate::user::user::{register_user, is_registration_enabled}; // log_user_in
-use crate::auth::forms::{show_login_page, login_user};
+use crate::auth::forms::{login_user};
 use serde::Deserialize;
 use crate::utilities::configuration::Configuration;
 
@@ -45,14 +47,17 @@ async fn main() -> std::io::Result<()> {
         .expect("Failed to create pool.");
 
     HttpServer::new(move || {
+        let allowed_url = config.get_fe_url();
+        let cors = Cors::default()
+            .allowed_origin_fn(move |origin, _req_head| {
+                origin.as_bytes().ends_with(allowed_url.as_bytes())
+            })
+            .allowed_methods(vec!["OPTIONS", "GET", "POST", "PUT", "DELETE"])
+            .allowed_headers(vec![header::AUTHORIZATION, header::ACCEPT])
+            .allowed_header(header::CONTENT_TYPE)
+            .max_age(3600);
         App::new()
-            // CORS are not needed at this stage
-            // .wrap(Cors::permissive().allowed_origin_fn(|origin, _req_head| {
-            //     return match origin.to_str() {
-            //         Err(_) => false,
-            //         Ok(val) => val.find("localhost").is_some()
-            //     }
-            // }))
+            .wrap(cors)
             .app_data(pool.clone())
             .route("/login", web::post().to(auth::forms::login_user))
             .route("/register", web::post().to(auth::forms::process_registration))
