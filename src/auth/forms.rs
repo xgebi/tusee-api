@@ -18,7 +18,7 @@ use crate::schema::tusee_users::dsl::tusee_users;
 use josekit::{JoseError, jwe::{JweHeader, A128GCMKW}, jwt::{self, JwtPayload}};
 use diesel::prelude::*;
 use crate::models::*;
-use diesel::r2d2::{self, Error as DbError, ConnectionManager};
+use diesel::r2d2::{self, Error as DbError, ConnectionManager, Pool};
 use crate::auth::token::Token;
 use crate::utilities::configuration::Configuration;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -58,13 +58,14 @@ pub struct TotpToken {
 
 const FIVE_MINUTES_SECS: u64 = 60 * 10;
 
-pub(crate) async fn login_user(pool: web::Data<DbPool>, info: web::Json<LoginInfo>) -> Result<HttpResponse, BlockingError> {
+pub(crate) async fn login_user(db: web::Data<DbPool>, info: web::Json<LoginInfo>) -> Result<HttpResponse, BlockingError> {
     use crate::schema::tusee_users::dsl::*;
     // validate against database
     // use web::block to offload blocking Diesel code without blocking server thread
+    println!("{:?}", &info);
     let username = info.username.clone();
     let user= web::block(move || {
-        let conn = pool.get().unwrap();
+        let conn = db.get().unwrap();
         let user = tusee_users.filter(email.eq(&username)).first::<User>(&conn);
         user
     }).await?;
@@ -112,62 +113,65 @@ pub(crate) async fn login_user(pool: web::Data<DbPool>, info: web::Json<LoginInf
     Ok(HttpResponse::Ok().finish())
 }
 
-pub(crate) async fn process_registration(pool: web::Data<DbPool>, info: web::Json<RegistrationInfo>) -> HttpResponse {
-    // check database if user exists
-    let username = info.username.clone();
-    let user_registered = web::block(move || {
-        let conn = pool.get().unwrap();
-        let found_user = tusee_users.filter( email.eq(&username)).first::<User>(&conn);
+pub(crate) async fn process_registration(req: HttpRequest, db: web::Data<DbPool>, info: web::Json<RegistrationInfo>) -> HttpResponse {
 
-        if let Err(_) = found_user {
-            let salt = SaltString::generate(&mut OsRng);
-            // Argon2 with default params (Argon2id v19)
-            let argon2 = Argon2::default();
-
-            // Hash password to PHC string ($argon2id$v=19$...)
-            let password_hash = argon2.hash_password((&info.password).as_ref(), &salt).unwrap().to_string();
-            // TODO decide after MVP stage if this is the best approach
-            // let rand_string: String = thread_rng()
-            //     .sample_iter(&Alphanumeric)
-            //     .take(16)
-            //     .map(char::from)
-            //     .collect();
-            let id = Uuid::new_v4().to_string();
-            if let Ok(_) = insert_user(&conn, &info, password_hash, &id) {
-                if let Ok(_) = insert_key(&conn, &id, &info.key) {
-                    return Ok(());
-                }
-            }
-            return Err(RegistrationError::DatabaseError);
-        }
-        Err(RegistrationError::AlreadyRegistered)
-    }).await;
-
-    match user_registered {
-        Ok(result) => {
-            match result {
-                Ok(_) => {
-                    HttpResponse::Found().header(http::header::LOCATION, "/login").finish()
-                }
-                Err(err) => {
-                    match err {
-                        RegistrationError::AlreadyRegistered => {
-                            HttpResponse::Found().header(http::header::LOCATION, "/register?err=already_registered").finish()
-                        }
-                        RegistrationError::DatabaseError => {
-                            HttpResponse::Found().header(http::header::LOCATION, "/register?err=database_error").finish()
-                        }
-                    }
-                }
-            }
-        }
-        Err(_) => {
-            HttpResponse::Found().header(http::header::LOCATION, "/register?err=database_error").finish()
-        }
-    }
+    HttpResponse::Ok().finish()
+    // // check database if user exists info: web::Json<RegistrationInfo>
+    // println!("{:?}", &info);
+    // let username = info.username.clone();
+    // let user_registered = web::block(move || {
+    //     let conn = db.get().unwrap();
+    //     let found_user = tusee_users.filter( email.eq(&username)).first::<User>(&conn);
+    //
+    //     if let Err(_) = found_user {
+    //         let salt = SaltString::generate(&mut OsRng);
+    //         // Argon2 with default params (Argon2id v19)
+    //         let argon2 = Argon2::default();
+    //
+    //         // Hash password to PHC string ($argon2id$v=19$...)
+    //         let password_hash = argon2.hash_password((&info.password).as_ref(), &salt).unwrap().to_string();
+    //         // TODO decide after MVP stage if this is the best approach
+    //         // let rand_string: String = thread_rng()
+    //         //     .sample_iter(&Alphanumeric)
+    //         //     .take(16)
+    //         //     .map(char::from)
+    //         //     .collect();
+    //         let id = Uuid::new_v4().to_string();
+    //         if let Ok(_) = insert_user(&conn, &info, password_hash, &id) {
+    //             if let Ok(_) = insert_key(&conn, &id, &info.key) {
+    //                 return Ok(());
+    //             }
+    //         }
+    //         return Err(RegistrationError::DatabaseError);
+    //     }
+    //     Err(RegistrationError::AlreadyRegistered)
+    // }).await;
+    //
+    // match user_registered {
+    //     Ok(result) => {
+    //         match result {
+    //             Ok(_) => {
+    //                 HttpResponse::Found().finish()
+    //             }
+    //             Err(err) => {
+    //                 match err {
+    //                     RegistrationError::AlreadyRegistered => {
+    //                         HttpResponse::Found().finish()
+    //                     }
+    //                     RegistrationError::DatabaseError => {
+    //                         HttpResponse::Found().finish()
+    //                     }
+    //                 }
+    //             }
+    //         }
+    //     }
+    //     Err(_) => {
+    //         HttpResponse::Found().finish()
+    //     }
+    // }
 }
 
-pub(crate) async fn process_totp_setup(req: HttpRequest, pool: web::Data<DbPool>,  totp_token: web::Form<TotpToken>) -> HttpResponse {
+pub(crate) async fn process_totp_setup(req: HttpRequest, db: web::Data<DbPool>,  totp_token: web::Form<TotpToken>) -> HttpResponse {
     let conf = Configuration::new();
     let totp = totp_factory(conf.get_secret());
     println!("{:?}", &totp_token.code);
