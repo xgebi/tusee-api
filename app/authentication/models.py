@@ -11,15 +11,16 @@ class User(Model):
 
     user_uuid = Column(str, primary_key=True)
     display_name = Column(str, default="Human")
-    password = Column(str, nullable=False, default="Human")
+    password = Column(str, nullable=False)
     email = Column(str, nullable=False)
     expiry_date = Column(type(datetime), default=datetime.utcnow())
     first_login = Column(bool, nullable=False, default=True)
     uses_totp = Column(bool, nullable=False, default=False)
 
-    def create_new(self, user_uuid, display_name, password, email):
+    @classmethod
+    def create_new(cls, user_uuid, display_name, password, email):
         ph = PasswordHasher()
-        return self.__init__({
+        return cls({
             "display_name": display_name,
             "user_uuid": user_uuid,
             "password": ph.hash(password),
@@ -34,3 +35,16 @@ class User(Model):
         self.expiry_date.set(user.get('expiry_date'))
         self.first_login.set(user.get('first_login'))
         self.uses_totp.set(user.get('uses_totp'))
+
+
+class Key(Model):
+    __table_name__ = 'tusee_encrypted_keys'
+
+    key_uuid = Column(str, primary_key=True)
+    tusee_user = Column(str, nullable=False)
+    key = Column(str, nullable=False)
+
+    def __init__(self, key: Dict):
+        self.key_uuid.set(key.get('key_uuid'))
+        self.tusee_user.set(key.get('tusee_user'))
+        self.key.set(key.get('key'))

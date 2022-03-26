@@ -3,8 +3,8 @@ import psycopg
 from flask import render_template, request, flash, redirect, url_for, current_app, jsonify
 from flask_cors import cross_origin
 import json
-from app.authentication.models import User
-from argon2 import PasswordHasher
+from app.authentication.models import User, Key
+from argon2 import PasswordHasher, exceptions
 
 from app.authentication import authentication
 
@@ -28,6 +28,12 @@ def register_user(*args, **kwargs):
             email=user_json.get('email'),
         )
         user.insert()
+        key = Key({
+            "key_uuid": user_json.key_uuid,
+            "tusee_user": user.user_uuid.value,
+            "key": user_json.key,
+        })
+        key.insert()
         return jsonify({"registrationSuccessful": True})
     except psycopg.Error as e:
         print(e)
@@ -49,16 +55,21 @@ def login_user(*args, **kwargs):
     """
     user_json = json.loads(request.data)
     try:
-        user = User.get(column='email', value=user_json.get('email'))
+        user = User.get(column='email', value=user_json.get('email'), to_dict=True)
         ph = PasswordHasher()
-        ph.verify(user.get('password'), user_json.get('password'))
-        return jsonify(user)
+        result = ph.verify(user.get('password'), user_json.get('password'))
+        if result:
+            del user["password"]
+            return jsonify(user)
+    except exceptions.InvalidHash as e:
+        print(e)
+        return jsonify({"loginSuccessful": False, "error": "credentials"}), 403
     except psycopg.Error as e:
         print(e)
-        return jsonify({"loginSuccessful": False, "error": "database"})
+        return jsonify({"loginSuccessful": False, "error": "database"}), 500
     except Exception as e:
         print(e)
-        return jsonify({"loginSuccessful": False, "error": "general"})
+        return jsonify({"loginSuccessful": False, "error": "general"}), 500
 
 
 @authentication.route("/api/verify-totp", methods=["POST"])
