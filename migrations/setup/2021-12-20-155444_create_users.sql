@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS tusee_users (
 	password character varying(500) NOT NULL,
 	email character varying(350) UNIQUE NOT NULL ,
 	token character varying(350) NOT NULL DEFAULT '',
-	expiry_date double precision NOT NULL DEFAULT 0,
+	expiry_date TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
 	first_login boolean NOT NULL DEFAULT TRUE,
 	uses_totp boolean NOT NULL DEFAULT FALSE
 )

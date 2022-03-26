@@ -1,1 +1,0 @@
-DROP TABLE IF EXISTS tusee_tasks;

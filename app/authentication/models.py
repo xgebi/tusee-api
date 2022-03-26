@@ -1,22 +1,36 @@
 from datetime import datetime
+from typing import Dict
+from argon2 import PasswordHasher
 
-from app import db
-from sqlalchemy.dialects import postgresql
+from app.db.model import Model
+from app.db.column import Column
 
 
-class User(db.Model):
-    __tablename__ = 'book'
+class User(Model):
+    __table_name__ = 'tusee_users'
 
-    user_uuid = db.Column(postgresql.VARCHAR(200), primary_key=True)
-    display_name = db.Column(postgresql.TEXT, default="Human")
-    password = db.Column(postgresql.VARCHAR(500), nullable=False, default="Human")
-    email = db.Column(postgresql.VARCHAR(350), nullable=False, unique=True)
-    expiry_date = db.Column(postgresql.DATE, default=datetime.utcnow())
-    first_login = db.Column(postgresql.BOOLEAN, nullable=False, default=True)
-    uses_totp = db.Column(postgresql.BOOLEAN, nullable=False, default=False)
+    user_uuid = Column(str, primary_key=True)
+    display_name = Column(str, default="Human")
+    password = Column(str, nullable=False, default="Human")
+    email = Column(str, nullable=False)
+    expiry_date = Column(type(datetime), default=datetime.utcnow())
+    first_login = Column(bool, nullable=False, default=True)
+    uses_totp = Column(bool, nullable=False, default=False)
 
-    def __init__(self, user_uuid, display_name, password, email):
-        self.user_uuid = user_uuid
-        self.display_name = display_name
-        self.password = password
-        self.email = email
+    def create_new(self, user_uuid, display_name, password, email):
+        ph = PasswordHasher()
+        return self.__init__({
+            "display_name": display_name,
+            "user_uuid": user_uuid,
+            "password": ph.hash(password),
+            "email": email
+        })
+
+    def __init__(self, user: Dict):
+        self.user_uuid.set(user.get('user_uuid'))
+        self.display_name.set(user.get('display_name'))
+        self.password.set(user.get('password'))
+        self.email.set(user.get('email'))
+        self.expiry_date.set(user.get('expiry_date'))
+        self.first_login.set(user.get('first_login'))
+        self.uses_totp.set(user.get('uses_totp'))

@@ -1,6 +1,6 @@
 ## URL Paths
 
-This is, hopefully, a self-deprecating file. 
+This is, hopefully, a cls-deprecating file. 
 
 - `/`
   - GET

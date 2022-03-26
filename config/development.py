@@ -1,6 +1,2 @@
 DEBUG = True
-DATABASE_URL = '127.0.0.1'
-DATABASE_PORT = 5432
-DATABASE_USER = 'tusee'
-DATABASE_PASSWORD = 'tusee'
-DATABASE_NAME = 'tusee'
+DATABASE_STRING = 'postgresql://tusee:tusee@127.0.0.1:5432/tusee'

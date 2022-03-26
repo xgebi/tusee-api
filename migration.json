@@ -1,0 +1,47 @@
+[
+  {
+    "type": "sql",
+    "folder": "setup",
+    "file": "2021-12-20-155444_create_users.sql"
+  },
+  {
+    "type": "sql",
+    "folder": "setup",
+    "file": "2021-12-20-161950_create_settings.sql"
+  },
+  {
+    "type": "sql",
+    "folder": "setup",
+    "file": "2021-12-26-110324_create_boards.sql"
+  },
+  {
+    "type": "sql",
+    "folder": "setup",
+    "file": "2021-12-26-110345_create_permissions_audit_log.sql"
+  },
+  {
+    "type": "sql",
+    "folder": "setup",
+    "file": "2021-12-26-110353_create_access_audit_log.sql"
+  },
+  {
+    "type": "sql",
+    "folder": "setup",
+    "file": "2021-12-26-110422_create_tasks.sql"
+  },
+  {
+    "type": "sql",
+    "folder": "setup",
+    "file": "2021-12-26-110647_create_encrypted_keys.sql"
+  },
+  {
+    "type": "sql",
+    "folder": "setup",
+    "file": "2021-12-26-111550_create_available_user_boards.sql"
+  },
+  {
+    "type": "sql",
+    "folder": "setup",
+    "file": "2021-12-26-112837_create_scheduled_blocks.sql"
+  }
+]

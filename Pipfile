@@ -6,9 +6,9 @@ name = "pypi"
 [packages]
 flask = "*"
 flask-cors = "*"
-flask-argon2 = "*"
 argon2-cffi = "*"
 flask-sqlalchemy = "*"
+psycopg = {extras = ["binary"], version = "*"}
 
 [dev-packages]
 

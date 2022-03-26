@@ -8,7 +8,7 @@ from pathlib import Path
 
 
 def execute_sql_scripts(con: psycopg.Connection, migration_sql: Dict):
-    with open(os.path.join(os.getcwd(), "database", migration_sql['folder'], migration_sql['file'])) as f:
+    with open(os.path.join(os.getcwd(), "migrations", migration_sql['folder'], migration_sql['file'])) as f:
         script = str(f.read())
         try:
             with con.cursor() as cur:
@@ -31,9 +31,7 @@ except IOError as e:
     print(e)
 
 if os.path.isfile("migration.json"):
-    with psycopg.connect(
-            f"postgresql://{DATABASE_USER}:{DATABASE_PASSWORD}@{DATABASE_URL}:{DATABASE_PORT}/{DATABASE_NAME}"
-    ) as con:
+    with psycopg.connect(DATABASE_STRING) as con:
         with con.cursor() as cur:
             cur.execute("""SELECT EXISTS (
                                 SELECT FROM 
