@@ -99,12 +99,12 @@ def verify_totp(*args, **kwargs):
     """
     user_json = json.loads(request.data)
     try:
-        user = User(
-            user_uuid=str(uuid.uuid4()),
-            display_name=user_json.get('displayName'),
-            password=user_json.get('password'),
-            email=user_json.get('email'),
-        )
+        user = User({
+            "user_uuid": str(uuid.uuid4()),
+            "display_name": user_json.get('displayName'),
+            "password": user_json.get('password'),
+            "email": user_json.get('email'),
+        })
         user.insert()
         return jsonify({"registrationSuccessful": True})
     except psycopg.Error as e:

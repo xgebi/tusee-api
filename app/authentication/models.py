@@ -18,7 +18,7 @@ class User(Model):
     first_login = Column(bool, nullable=False, default=True)
     uses_totp = Column(bool, nullable=False, default=False)
     totp_secret = Column(str)
-    token = Column(str)
+    token = Column(str, default='')
 
     @classmethod
     def create_new(cls, user_uuid, display_name, password, email):
@@ -28,7 +28,7 @@ class User(Model):
             "user_uuid": user_uuid,
             "password": ph.hash(password),
             "email": email,
-            "totp_secret": pyotp.random_hex()
+            "totp_secret": pyotp.random_base32()
         })
 
     def __init__(self, user: Dict):
