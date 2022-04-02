@@ -11,3 +11,5 @@ CREATE TABLE IF NOT EXISTS tusee_access_audit_log
         ON UPDATE NO ACTION
         ON DELETE NO ACTION
 );
+
+REVOKE UPDATE, DELETE ON tusee_access_audit_log FROM tusee;

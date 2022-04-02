@@ -29,9 +29,10 @@ def register_user(*args, **kwargs):
         )
         user.insert()
         key = Key({
-            "key_uuid": user_json.key_uuid,
+            "key_uuid": str(uuid.uuid4()),
             "tusee_user": user.user_uuid.value,
-            "key": user_json.key,
+            "key": user_json.get('key'),
+            "boardless": True
         })
         key.insert()
         return jsonify({"registrationSuccessful": True})

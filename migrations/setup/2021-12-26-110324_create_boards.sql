@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS tusee_boards
 (
-    board_uuid        character varying(200) NOT NULL,
+    board_uuid  character varying(200) NOT NULL,
     name        text DEFAULT '',
     description text DEFAULT '',
     owner       character varying(200) NOT NULL,
