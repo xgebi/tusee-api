@@ -1,6 +1,6 @@
 from app import db
 from app.db.column import Column
-from typing import Dict
+from typing import Dict, Type
 
 
 class Model:
@@ -10,7 +10,16 @@ class Model:
         self.item = item
 
     @classmethod
-    def get(cls, column: str or None = None, value=None, to_dict=False) -> 'Model' or Dict:
+    def get(cls, column: str or None = None, value=None) -> 'Model' or Type['Model']:
+        res = cls.__get(column=column, value=value)
+        return cls(res)
+
+    @classmethod
+    def get_dict(cls, column: str or None = None, value=None) -> 'Model' or Type['Model']:
+        return cls.__get(column=column, value=value)
+
+    @classmethod
+    def __get(cls, column: str or None = None, value=None):
         keys = [key for key in vars(cls) if not key.startswith('_') and type(cls.__getattribute__(cls, key)) == Column]
         if column in keys and value is not None:
             columns = ",".join(keys)
@@ -21,13 +30,40 @@ class Model:
                 result_dict = {}
                 for i in range(len(keys)):
                     result_dict[keys[i]] = res[i]
-                if to_dict:
-                    return result_dict
-                return cls(result_dict)
-        return cls
+                return result_dict
+        return {}
 
-    def get_all(self):
-        pass
+    @classmethod
+    def get_all(cls, column: str or None = None, value=None):
+        objectified = []
+        items = cls.__get_all(column, value)
+        for item in items:
+            objectified.append(cls(item))
+        return objectified
+
+    @classmethod
+    def get_all_dict(cls, column: str or None = None, value=None):
+        return cls.__get_all(column, value)
+
+    @classmethod
+    def __get_all(cls, column: str or None = None, value=None):
+        keys = [key for key in vars(cls) if not key.startswith('_') and type(cls.__getattribute__(cls, key)) == Column]
+        if column in keys and value is not None:
+            columns = ",".join(keys)
+            query = f"SELECT {columns} FROM {cls.__table_name__} WHERE {column} = %s"
+            with db.con.cursor() as cur:
+                cur.execute(query, (value,))
+                res = cur.fetchall()
+                result_list = []
+                for item in res:
+                    item_dict = {}
+                    for i in range(len(keys)):
+                        item_dict[keys[i]] = item[i]
+                    result_list.append(item_dict)
+                return result_list
+
+    def to_dict(self):
+        return {key: self.__getattribute__(key).value for key in dir(self) if type(self.__getattribute__(key)) == Column}
 
     def insert(self):
         keys = [key for key in dir(self) if type(self.__getattribute__(key)) == Column]
@@ -48,7 +84,7 @@ class Model:
         if primary_key is None:
             return
         keys = [key for key in keys if key != primary_key]
-        columns = " = %s".join(keys)
+        columns = f"{' = %s, '.join(keys)} = %s"
         values = [self.__getattribute__(key).value for key in keys]
         values.append(self.__getattribute__(primary_key).value)
         query = f"UPDATE {self.__table_name__} SET {columns} WHERE {primary_key} = %s;"

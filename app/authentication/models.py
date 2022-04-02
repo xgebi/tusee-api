@@ -18,6 +18,7 @@ class User(Model):
     first_login = Column(bool, nullable=False, default=True)
     uses_totp = Column(bool, nullable=False, default=False)
     totp_secret = Column(str)
+    token = Column(str)
 
     @classmethod
     def create_new(cls, user_uuid, display_name, password, email):
@@ -40,6 +41,7 @@ class User(Model):
         self.first_login.set(user.get('first_login'))
         self.uses_totp.set(user.get('uses_totp'))
         self.totp_secret.set(user.get('totp_secret'))
+        self.token.set(user.get('token'))
 
 
 class Key(Model):

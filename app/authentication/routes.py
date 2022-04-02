@@ -1,3 +1,4 @@
+import datetime
 import uuid
 import psycopg
 from flask import render_template, request, flash, redirect, url_for, current_app, jsonify
@@ -56,12 +57,25 @@ def login_user(*args, **kwargs):
     """
     user_json = json.loads(request.data)
     try:
-        user = User.get(column='email', value=user_json.get('email'), to_dict=True)
+        user = User.get(column='email', value=user_json.get('email'))
+        user_dict = user.to_dict()
         ph = PasswordHasher()
-        result = ph.verify(user.get('password'), user_json.get('password'))
+        result = ph.verify(user_dict.get('password'), user_json.get('password'))
         if result:
-            del user["password"]
-            return jsonify(user)
+            expiry_time = (datetime.datetime.now() + datetime.timedelta(0, 0, 0, 0, 30)).astimezone().isoformat()
+            user.expiry_date.set(expiry_time)
+            token = uuid.uuid4()
+            user.token.set(token)
+            user.update()
+
+            user_dict["token"] = token
+            user_dict["expiry_date"] = expiry_time
+            user_dict["password"] = ""
+            if not user_dict["uses_totp"] and not user_dict["first_login"]:
+                user_dict["keys"] = Key.get_all_dict(column='tusee_user', value=user.user_uuid.value)
+            else:
+                user_dict["keys"] = []
+            return jsonify(user_dict)
     except exceptions.InvalidHash as e:
         print(e)
         return jsonify({"loginSuccessful": False, "error": "credentials"}), 403
