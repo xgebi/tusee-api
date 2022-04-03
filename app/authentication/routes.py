@@ -1,5 +1,6 @@
 import datetime
 import uuid
+import jwt
 import psycopg
 from flask import render_template, request, flash, redirect, url_for, current_app, jsonify
 from flask_cors import cross_origin
@@ -64,7 +65,8 @@ def login_user(*args, **kwargs):
         if result:
             expiry_time = (datetime.datetime.now() + datetime.timedelta(0, 0, 0, 0, 30)).astimezone().isoformat()
             user.expiry_date.set(expiry_time)
-            token = uuid.uuid4()
+            token = jwt.encode({"email": user_dict["email"], "expiry_date": expiry_time},
+                               current_app.config["SECRET_KEY"], algorithm="HS256")
             user.token.set(token)
             user.update()
 
@@ -125,13 +127,36 @@ def setup_totp(*args, **kwargs):
     :param kwargs:
     :return:
     """
-    user_json = json.loads(request.data)
-    try:
-        user = User.get(column='email', value=user_json.get('email'))
-        return jsonify(user)
-    except psycopg.Error as e:
-        print(e)
-        return jsonify({"registrationSuccessful": False, "error": "database"})
-    except Exception as e:
-        print(e)
-        return jsonify({"registrationSuccessful": False, "error": "general"})
+    user = User.authenticate(request=request)
+    if user:
+        try:
+            totp = json.loads(request.data)
+            if totp["skip"]:
+                user.first_login.set(False)
+                user.uses_totp.set(False)
+                user.update()
+                keys = Key.get_all_dict(column="tusee_user", value=user.user_uuid)
+                return jsonify(keys)
+            else:
+                if totp.verify(totp["totpCode"]):
+                    user.first_login.set(False)
+                    user.uses_totp.set(True)
+                    user.update()
+                    keys = Key.get_all_dict(column="tusee_user", value=user.user_uuid)
+                    return jsonify({
+                        "totpVerified": True,
+                        "keys": keys,
+                    })
+
+                return jsonify({
+                        "totpVerified": True,
+                        "keys": [],
+                    })
+
+        except psycopg.Error as e:
+            print(e)
+            return jsonify({"registrationSuccessful": False, "error": "database"})
+        except Exception as e:
+            print(e)
+            return jsonify({"registrationSuccessful": False, "error": "general"})
+    return jsonify({"registrationSuccessful": False, "error": "general"})

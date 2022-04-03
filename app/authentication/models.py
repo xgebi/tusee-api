@@ -1,7 +1,9 @@
+from flask import current_app, wrappers
 from datetime import datetime
 from typing import Dict
 from argon2 import PasswordHasher
 import pyotp
+import jwt
 
 from app.db.model import Model
 from app.db.column import Column
@@ -42,6 +44,15 @@ class User(Model):
         self.uses_totp.set(user.get('uses_totp'))
         self.totp_secret.set(user.get('totp_secret'))
         self.token.set(user.get('token'))
+
+    @staticmethod
+    def authenticate(request: wrappers.Request):
+        auth = request.headers.get('authorization').split(" ")
+        decoded = jwt.decode(auth[1], current_app.config["SECRET_KEY"], algorithms="HS256")
+        user = User.get(column="email", value=decoded["email"])
+        if user.expiry_date == datetime.fromisoformat(decoded["expiry_date"]) and user.expiry_date > datetime.now():
+            return user
+        return None
 
 
 class Key(Model):
