@@ -47,10 +47,10 @@ class User(Model):
 
     @staticmethod
     def authenticate(request: wrappers.Request):
-        auth = request.headers.get('authorization').split(" ")
-        decoded = jwt.decode(auth[1], current_app.config["SECRET_KEY"], algorithms="HS256")
+        auth = request.headers.get('authorization')
+        decoded = jwt.decode(auth, current_app.config["SECRET_KEY"], algorithms="HS256")
         user = User.get(column="email", value=decoded["email"])
-        if user.expiry_date == datetime.fromisoformat(decoded["expiry_date"]) and user.expiry_date > datetime.now():
+        if user.expiry_date.value == datetime.fromisoformat(decoded["expiry_date"]) and user.expiry_date.value > datetime.now().astimezone():
             return user
         return None
 
@@ -61,11 +61,11 @@ class Key(Model):
     key_uuid = Column(str, primary_key=True)
     tusee_user = Column(str, nullable=False)
     key = Column(str, nullable=False)
-    boardless = Column(str, nullable=False)
+    board = Column(str, nullable=True)
 
     def __init__(self, key: Dict):
         super().__init__(key)
         self.key_uuid.set(key.get('key_uuid'))
         self.tusee_user.set(key.get('tusee_user'))
         self.key.set(key.get('key'))
-        self.boardless.set(key.get('boardless'))
+        self.board.set(key.get('board'))

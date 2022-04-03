@@ -2,11 +2,13 @@ import datetime
 import uuid
 import jwt
 import psycopg
+import pyotp
 from flask import render_template, request, flash, redirect, url_for, current_app, jsonify
 from flask_cors import cross_origin
 import json
 from app.authentication.models import User, Key
 from argon2 import PasswordHasher, exceptions
+from app import db
 
 from app.authentication import authentication
 
@@ -34,7 +36,7 @@ def register_user(*args, **kwargs):
             "key_uuid": str(uuid.uuid4()),
             "tusee_user": user.user_uuid.value,
             "key": user_json.get('key'),
-            "boardless": True
+            "board": None
         })
         key.insert()
         return jsonify({"registrationSuccessful": True})
@@ -130,15 +132,19 @@ def setup_totp(*args, **kwargs):
     user = User.authenticate(request=request)
     if user:
         try:
-            totp = json.loads(request.data)
-            if totp["skip"]:
+            totp_data = json.loads(request.data)
+            if totp_data["skip"]:
                 user.first_login.set(False)
                 user.uses_totp.set(False)
                 user.update()
                 keys = Key.get_all_dict(column="tusee_user", value=user.user_uuid)
-                return jsonify(keys)
+                return jsonify({
+                        "totpVerified": True,
+                        "keys": keys,
+                    })
             else:
-                if totp.verify(totp["totpCode"]):
+                totp = pyotp.TOTP(user.totp_secret.value)
+                if totp.verify(totp_data["totpCode"]):
                     user.first_login.set(False)
                     user.uses_totp.set(True)
                     user.update()
@@ -151,12 +157,14 @@ def setup_totp(*args, **kwargs):
                 return jsonify({
                         "totpVerified": True,
                         "keys": [],
-                    })
+                    }), 401
 
         except psycopg.Error as e:
             print(e)
-            return jsonify({"registrationSuccessful": False, "error": "database"})
+            db.con.rollback()
+            return jsonify({"registrationSuccessful": False, "error": "database"}), 500
         except Exception as e:
             print(e)
-            return jsonify({"registrationSuccessful": False, "error": "general"})
-    return jsonify({"registrationSuccessful": False, "error": "general"})
+            db.con.rollback()
+            return jsonify({"registrationSuccessful": False, "error": "general"}), 500
+    return jsonify({"registrationSuccessful": False, "error": "general"}), 500

@@ -47,6 +47,8 @@ class Model:
 
     @classmethod
     def __get_all(cls, column: str or None = None, value=None):
+        if type(value) == Column:
+            value = value.value
         keys = [key for key in vars(cls) if not key.startswith('_') and type(cls.__getattribute__(cls, key)) == Column]
         if column in keys and value is not None:
             columns = ",".join(keys)
