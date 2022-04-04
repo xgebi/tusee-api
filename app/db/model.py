@@ -2,6 +2,8 @@ from app import db
 from app.db.column import Column
 from typing import Dict, Type
 
+from app.db.filters import Filter
+
 
 class Model:
     __table_name__ = None
@@ -20,6 +22,8 @@ class Model:
 
     @classmethod
     def __get(cls, column: str or None = None, value=None):
+        if type(value) == Column:
+            value = value.value
         keys = [key for key in vars(cls) if not key.startswith('_') and type(cls.__getattribute__(cls, key)) == Column]
         if column in keys and value is not None:
             columns = ",".join(keys)
@@ -63,6 +67,22 @@ class Model:
                         item_dict[keys[i]] = item[i]
                     result_list.append(item_dict)
                 return result_list
+
+    @classmethod
+    def __get_filtered(cls, f: Filter):
+        keys = [key for key in vars(cls) if not key.startswith('_') and type(cls.__getattribute__(cls, key)) == Column]
+        columns = ",".join(keys)
+        query = f"SELECT {columns} FROM {cls.__table_name__} WHERE {f.keys_to_str()}"
+        with db.con.cursor() as cur:
+            cur.execute(query, f.values_for_query())
+            res = cur.fetchall()
+            result_list = []
+            for item in res:
+                item_dict = {}
+                for i in range(len(keys)):
+                    item_dict[keys[i]] = item[i]
+                result_list.append(item_dict)
+            return result_list
 
     def to_dict(self):
         return {key: self.__getattribute__(key).value for key in dir(self) if type(self.__getattribute__(key)) == Column}

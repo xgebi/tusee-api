@@ -43,5 +43,10 @@
     "type": "sql",
     "folder": "setup",
     "file": "2021-12-26-112837_create_scheduled_blocks.sql"
+  },
+  {
+    "type": "sql",
+    "folder": "setup",
+    "file": "2022-04-03-151600_create_events_table.sql"
   }
 ]

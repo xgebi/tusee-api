@@ -2,12 +2,16 @@ class Filter:
     def __init__(self, f: 'Filter'):
         self.filter = f
 
-    def to_str(self):
+    def keys_to_str(self):
+        pass
+
+    def values_for_query(self):
         pass
 
 
 class ColumnFilter(Filter):
-    def __init__(self, name: str, value: any):
+    def __init__(self, name: str, value: any, f: 'Filter'):
+        super().__init__(f)
         self.name = name
         self.value = value
 
