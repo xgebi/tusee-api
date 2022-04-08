@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS tusee_boards
     name        text DEFAULT '',
     description text DEFAULT '',
     owner       character varying(200) NOT NULL,
+    created     TIMESTAMP WITH TIME ZONE NOT NULL,
 
     PRIMARY KEY (board_uuid),
     CONSTRAINT user_fkey FOREIGN KEY (owner)

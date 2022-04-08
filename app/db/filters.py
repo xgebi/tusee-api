@@ -17,7 +17,8 @@ class ColumnFilter(Filter):
 
 
 class AndFilter(Filter):
-    pass
+    def __init__(self, f: 'Filter'):
+        super().__init__(f)
 
 
 class OrFilter(Filter):

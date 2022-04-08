@@ -7,7 +7,6 @@ name = "pypi"
 flask = "*"
 flask-cors = "*"
 argon2-cffi = "*"
-flask-sqlalchemy = "*"
 psycopg = {extras = ["binary"], version = "*"}
 pyotp = "*"
 pyjwt = "*"

@@ -16,5 +16,8 @@ def create_app():
     from app.authentication import authentication
     app.register_blueprint(authentication)
 
+    from app.task import task
+    app.register_blueprint(task)
+
     return app
 

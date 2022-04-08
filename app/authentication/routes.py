@@ -168,3 +168,9 @@ def setup_totp(*args, **kwargs):
             db.con.rollback()
             return jsonify({"registrationSuccessful": False, "error": "general"}), 500
     return jsonify({"registrationSuccessful": False, "error": "general"}), 500
+
+
+@authentication.route("/api/authorize-token", methods=["POST"])
+@cross_origin()
+def setup_totp(*args, **kwargs):
+    pass

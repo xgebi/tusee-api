@@ -37,11 +37,6 @@
   {
     "type": "sql",
     "folder": "setup",
-    "file": "2021-12-26-111550_create_available_user_boards.sql"
-  },
-  {
-    "type": "sql",
-    "folder": "setup",
     "file": "2021-12-26-112837_create_scheduled_blocks.sql"
   },
   {

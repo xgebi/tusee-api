@@ -83,6 +83,8 @@ if os.path.isfile("migration.json"):
                 con.commit()
 
     if os.environ["FLASK_ENV"] != "development":
-        os.remove("migration.json")
+        answer = input(f"Delete migrations file? (Y/n)")
+        if answer.lower() != 'n':
+            os.remove("migration.json")
 
 print("\nMigrations done")
