@@ -72,9 +72,9 @@ class Model:
     def __get_filtered(cls, f: Filter):
         keys = [key for key in vars(cls) if not key.startswith('_') and type(cls.__getattribute__(cls, key)) == Column]
         columns = ",".join(keys)
-        query = f"SELECT {columns} FROM {cls.__table_name__} WHERE {f.keys_to_str()}"
+        query = f"SELECT {columns} FROM {cls.__table_name__} WHERE {f.collect_query_fragments()}"
         with db.con.cursor() as cur:
-            cur.execute(query, f.values_for_query())
+            cur.execute(query, f.collect_values())
             res = cur.fetchall()
             result_list = []
             for item in res:
