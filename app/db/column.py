@@ -2,7 +2,7 @@ class Column:
     """
 
     """
-    def __init__(self, data_type: type, nullable: bool = False, primary_key: bool = False, value=None, default=None):
+    def __init__(self, data_type: type, nullable: bool = True, primary_key: bool = False, value=None, default=None):
         """
         Constructor for Column class
 
