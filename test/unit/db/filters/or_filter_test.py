@@ -5,9 +5,9 @@ from app.db.filters import Condition, OrFilter
 
 
 class OrFilterTestCase(unittest.TestCase):
-    def test_create_and_filter(self):
+    def test_create_filter(self):
         of = OrFilter()
-        self.assertListEqual(of.conditions, [])
+        self.assertEqual(OrFilter, type(of))
 
     def test_and_filter_single_value_query_fragments(self):
         with patch.object(Condition, 'to_query_string', return_value="abc > %s"):

@@ -5,6 +5,10 @@ from app.db.filters import Condition, Filter
 
 
 class FilterTestCase(unittest.TestCase):
+    def test_create_filter(self):
+        f = Filter()
+        self.assertEqual(Filter, type(f))
+
     def test_and_filter_single_value_query_fragments(self):
         with patch.object(Condition, 'to_query_string', return_value="abc > %s"):
             af = Filter()

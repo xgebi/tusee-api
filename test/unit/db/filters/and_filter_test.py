@@ -7,7 +7,7 @@ from app.db.filters import AndFilter, Condition
 class AndFilterTestCase(unittest.TestCase):
     def test_create_and_filter(self):
         af = AndFilter()
-        self.assertListEqual(af.conditions, [])
+        self.assertEqual(AndFilter, type(af))
 
     def test_and_filter_single_value_query_fragments(self):
         with patch.object(Condition, 'to_query_string', return_value="abc > %s"):
