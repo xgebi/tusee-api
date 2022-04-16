@@ -3,9 +3,12 @@ CREATE TABLE IF NOT EXISTS tusee_tasks
     task_uuid   character varying(200) NOT NULL,
     creator     character varying(200) NOT NULL,
     board       character varying(200) NOT NULL,
-    description text NOT NULL,
+    title       text NOT NULL,
+    description text,
     updated     TIMESTAMP WITH TIME ZONE,
     created     TIMESTAMP WITH TIME ZONE NOT NULL,
+    deadline    TIMESTAMP WITH TIME ZONE,
+    start_time     TIMESTAMP WITH TIME ZONE,
 
     PRIMARY KEY (task_uuid),
     CONSTRAINT creator_fkey FOREIGN KEY (creator)
