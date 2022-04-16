@@ -34,24 +34,26 @@ def authenticate_user(request: wrappers.Request):
     return None
 
 
-def get_user_by_email(email: str) -> Dict:
+def get_user_by_email(email: str) -> Dict or None:
     conn = db.get_connection()
     with conn.cursor() as cur:
         cur.execute("""SELECT user_uuid, display_name, password, email, token, expiry_date, 
         created, first_login, uses_totp, totp_secret FROM tusee_users WHERE email = %s""", (email,))
         temp = cur.fetchone()
-        return {
-            "user_uuid": temp[0],
-            "display_name": temp[1],
-            "password": temp[2],
-            "email": temp[3],
-            "token": temp[4],
-            "expiry_date": temp[5],
-            "created": temp[6],
-            "first_login": temp[7],
-            "uses_totp": temp[8],
-            "totp_secret": temp[9]
-        }
+        if temp:
+            return {
+                "user_uuid": temp[0],
+                "display_name": temp[1],
+                "password": temp[2],
+                "email": temp[3],
+                "token": temp[4],
+                "expiry_date": temp[5],
+                "created": temp[6],
+                "first_login": temp[7],
+                "uses_totp": temp[8],
+                "totp_secret": temp[9]
+            }
+        return None
 
 
 def update_user(user: Dict):

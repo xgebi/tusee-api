@@ -54,6 +54,8 @@ def login_user(*args, **kwargs):
     user_json = json.loads(request.data)
     try:
         user = get_user_by_email(email=user_json.get('email'))
+        if user is None:
+            return jsonify({"loginSuccessful": False, "error": "credentials"}), 403
         ph = PasswordHasher()
         result = ph.verify(user.get('password'), user_json.get('password'))
         if result:
@@ -159,15 +161,3 @@ def setup_totp(*args, **kwargs):
             db.con.rollback()
             return jsonify({"registrationSuccessful": False, "error": "general"}), 500
     return jsonify({"registrationSuccessful": False, "error": "general"}), 500
-
-
-@authentication.route("/api/authorize-token", methods=["POST"])
-@cross_origin()
-def authorize_token(*args, **kwargs):
-    user = authenticate_user(request)
-    if user:
-        return {
-            "authenticated": True,
-            "user": user
-        }
-    return {"authenticated": False}

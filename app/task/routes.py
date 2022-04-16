@@ -1,6 +1,6 @@
 import json
 
-from flask import render_template, request, flash, redirect, url_for, current_app
+from flask import render_template, request, flash, redirect, url_for, current_app, jsonify
 from flask_cors import cross_origin
 
 from app.task import task
@@ -20,12 +20,12 @@ def get_standalone_tasks(*args, **kwargs):
     """
     user = authenticate_user(request=request)
     if user:
-        get_standalone_tasks_for_user(user['user_uuid'])
+        return jsonify(get_standalone_tasks_for_user(user['user_uuid']))
 
 
 @task.route("/api/task/<id>", methods=["GET"])
 @cross_origin()
-def work_with_task(*args, task_id: str, **kwargs):
+def get_task_detail(*args, task_id: str, **kwargs):
     """
 
 
