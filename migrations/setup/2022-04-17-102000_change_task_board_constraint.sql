@@ -1,0 +1,1 @@
+ALTER TABLE tusee_tasks ALTER COLUMN board DROP NOT NULL;

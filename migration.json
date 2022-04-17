@@ -48,5 +48,10 @@
     "type": "sql",
     "folder": "setup",
     "file": "2022-04-17-094900_add_task_status_column.sql"
+  },
+  {
+    "type": "sql",
+    "folder": "setup",
+    "file": "2022-04-17-102000_change_task_board_constraint.sql"
   }
 ]

@@ -48,8 +48,8 @@ def create_task(user_uuid, task):
             (task_uuid, creator, board, title, description, updated, created, deadline, start_time) 
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
             RETURNING task_uuid, creator, board, title, description, updated, created, deadline, start_time""",
-            (task_uuid, user_uuid, task["board_uuid"], task["title"], task["description"], datetime.now(),
-             datetime.now(), task["deadline"], task["start_time"]))
+            (task_uuid, user_uuid, task.get("board_uuid"), task.get("title"), task.get("description"), datetime.now(),
+             datetime.now(), task.get("deadline"), task.get("start_time")))
         temp = cur.fetchone()
         task_dict = task_to_dict(temp)
     conn.commit()
