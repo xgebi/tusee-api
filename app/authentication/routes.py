@@ -65,9 +65,6 @@ def login_user(*args, **kwargs):
                                current_app.config["SECRET_KEY"], algorithm="HS256")
             user["token"] = token
             update_user(user)
-
-            user["token"] = token
-            user["expiry_date"] = expiry_time
             user["password"] = ""
             if not user["uses_totp"] and not user["first_login"]:
                 user["keys"] = get_user_keys(tusee_user=user["user_uuid"])

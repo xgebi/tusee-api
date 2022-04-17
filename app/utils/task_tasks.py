@@ -38,7 +38,7 @@ def get_tasks_for_board(board_uuid, user_uuid):
         return [task_to_dict(temp) for temp in temps]
 
 
-def create_task(user_uuid, task):
+def create_task(user, task):
     task_dict = None
     conn = db.get_connection()
     with conn.cursor() as cur:
@@ -48,12 +48,12 @@ def create_task(user_uuid, task):
             (task_uuid, creator, board, title, description, updated, created, deadline, start_time) 
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
             RETURNING task_uuid, creator, board, title, description, updated, created, deadline, start_time, task_status""",
-            (task_uuid, user_uuid, task.get("board_uuid"), task.get("title"), task.get("description"), datetime.now(),
+            (task_uuid, user["user_uuid"], task.get("board_uuid"), task.get("title"), task.get("description"), datetime.now(),
              datetime.now(), task.get("deadline"), task.get("start_time")))
         temp = cur.fetchone()
         task_dict = task_to_dict(temp)
     conn.commit()
-    return task_dict
+    return jsonify({"token": user["token"], "task": task_dict}), 200
 
 
 def get_single_task(task_uuid, user_uuid):
@@ -98,7 +98,7 @@ def get_single_task(task_uuid, user_uuid):
             return jsonify({}), 403
 
 
-def update_task(task, user_uuid):
+def update_task(task, user):
     conn = db.get_connection()
     with conn.cursor() as cur:
         cur.execute(
@@ -110,8 +110,8 @@ def update_task(task, user_uuid):
         if temp is None:
             log_permission_violation(
                 cur=cur,
-                user_uuid=user_uuid,
-                event=f"Attempted to update non-existent task {task['task_uuid']} by {user_uuid}"
+                user_uuid=user['user_uuid'],
+                event=f"Attempted to update non-existent task {task['task_uuid']} by {user['user_uuid']}"
             )
             return jsonify({}), 403
 
@@ -122,20 +122,20 @@ def update_task(task, user_uuid):
                         (task_dict.get('board'),))
             temp = cur.fetchall()
             if len(temp) > 0:
-                return jsonify(update_task_db(cur=cur, task=task)), 200
+                return jsonify({"token": user["token"], "task": update_task_db(cur=cur, task=task)}), 200
             log_permission_violation(
                 cur=cur,
-                user_uuid=user_uuid,
-                event=f"Attempted to update task {task['task_uuid']} on board {task.get('board')} by {user_uuid}"
+                user_uuid=user['user_uuid'],
+                event=f"Attempted to update task {task['task_uuid']} on board {task.get('board')} by {user['user_uuid']}"
             )
             return jsonify({}), 403
         else:
-            if task_dict.get("creator") == user_uuid:
-                return jsonify(update_task_db(cur=cur, task=task)), 200
+            if task_dict.get("creator") == user['user_uuid']:
+                return jsonify({"token": user["token"], "task": update_task_db(cur=cur, task=task)}), 200
             log_permission_violation(
                 cur=cur,
-                user_uuid=user_uuid,
-                event=f"Attempted to update task {task['task_uuid']} by {user_uuid}"
+                user_uuid=user['user_uuid'],
+                event=f"Attempted to update task {task['task_uuid']} by {user['user_uuid']}"
             )
             return jsonify({}), 403
 

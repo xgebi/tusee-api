@@ -20,7 +20,10 @@ def get_standalone_tasks(*args, **kwargs):
     """
     user = authenticate_user(request=request)
     if user:
-        return jsonify(get_standalone_tasks_for_user(user['user_uuid'], 'done'))
+        return jsonify({
+            "token": user["token"],
+            "tasks": get_standalone_tasks_for_user(user['user_uuid'], 'done')
+        })
 
 
 @task.route("/api/task/<id>", methods=["GET"])
@@ -52,10 +55,10 @@ def work_with_task(*args, **kwargs):
     user = authenticate_user(request=request)
     task_data = json.loads(request.data)
     if request.method == "POST":
-        return create_task(task=task_data, user_uuid=user["user_uuid"])
+        return create_task(task=task_data, user=user)
 
     if request.method == "PUT":
-        return update_task(task=task_data, user_uuid=user["user_uuid"])
+        return update_task(task=task_data, user=user)
 
     if request.method == "DELETE":
         pass
