@@ -43,5 +43,10 @@
     "type": "sql",
     "folder": "setup",
     "file": "2022-04-03-151600_create_events_table.sql"
+  },
+  {
+    "type": "sql",
+    "folder": "setup",
+    "file": "2022-04-17-094900_add_task_status_column.sql"
   }
 ]

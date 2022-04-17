@@ -38,7 +38,7 @@ def get_tasks_for_board(board_uuid, user_uuid):
         return [task_to_dict(temp) for temp in temps]
 
 
-def create_task(user_uuid, board_uuid, title, description, deadline, start_time):
+def create_task(user_uuid, task):
     task_dict = None
     conn = db.get_connection()
     with conn.cursor() as cur:
@@ -48,8 +48,8 @@ def create_task(user_uuid, board_uuid, title, description, deadline, start_time)
             (task_uuid, creator, board, title, description, updated, created, deadline, start_time) 
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
             RETURNING task_uuid, creator, board, title, description, updated, created, deadline, start_time""",
-            (task_uuid, user_uuid, board_uuid, title, description, datetime.now(),
-             datetime.now(), deadline, start_time))
+            (task_uuid, user_uuid, task["board_uuid"], task["title"], task["description"], datetime.now(),
+             datetime.now(), task["deadline"], task["start_time"]))
         temp = cur.fetchone()
         task_dict = task_to_dict(temp)
     conn.commit()

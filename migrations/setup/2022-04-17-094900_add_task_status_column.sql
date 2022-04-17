@@ -1,0 +1,1 @@
+ALTER TABLE tusee_tasks ADD COLUMN task_status character varying(200) DEFAULT 'ready';
