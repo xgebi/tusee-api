@@ -13,9 +13,9 @@ def get_standalone_tasks_for_user(user_uuid: str) -> List:
     conn = db.get_connection()
     with conn.cursor() as cur:
         cur.execute(
-            """SELECT task_uuid, creator, board, title, description, updated, created, deadline, start_time 
-            FROM tusee_tasks WHERE creator = %s AND board = %s""",
-            (user_uuid, None)
+            """SELECT task_uuid, creator, board, title, description, updated, created, deadline, start_time, task_status 
+            FROM tusee_tasks WHERE creator = %s AND board IS NULL""",
+            (user_uuid, )
         )
         temps = cur.fetchall()
         return [task_to_dict(temp) for temp in temps]
@@ -30,7 +30,7 @@ def get_tasks_for_board(board_uuid, user_uuid):
         if len(temp) == 0:
             raise Exception("Cannot access tasks for this board")
         cur.execute(
-            """SELECT task_uuid, creator, board, title, description, updated, created, deadline, start_time 
+            """SELECT task_uuid, creator, board, title, description, updated, created, deadline, start_time, task_status 
             FROM tusee_tasks WHERE creator = %s AND board = %s""",
             (user_uuid, board_uuid)
         )
@@ -47,7 +47,7 @@ def create_task(user_uuid, task):
             """INSERT INTO tusee_tasks 
             (task_uuid, creator, board, title, description, updated, created, deadline, start_time) 
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-            RETURNING task_uuid, creator, board, title, description, updated, created, deadline, start_time""",
+            RETURNING task_uuid, creator, board, title, description, updated, created, deadline, start_time, task_status""",
             (task_uuid, user_uuid, task.get("board_uuid"), task.get("title"), task.get("description"), datetime.now(),
              datetime.now(), task.get("deadline"), task.get("start_time")))
         temp = cur.fetchone()
@@ -60,7 +60,7 @@ def get_single_task(task_uuid, user_uuid):
     conn = db.get_connection()
     with conn.cursor() as cur:
         cur.execute(
-            """SELECT task_uuid, creator, board, title, description, updated, created, deadline, start_time 
+            """SELECT task_uuid, creator, board, title, description, updated, created, deadline, start_time, task_status 
             FROM tusee_tasks WHERE task_uuid = %s""",
             (task_uuid, )
         )
@@ -122,7 +122,7 @@ def update_task(task, user_uuid):
                         (task_dict.get('board'),))
             temp = cur.fetchall()
             if len(temp) > 0:
-                return jsonify(update_task_db(task_dict)), 200
+                return jsonify(update_task_db(cur=cur, task=task_dict)), 200
             log_permission_violation(
                 cur=cur,
                 user_uuid=user_uuid,
@@ -193,17 +193,19 @@ def task_to_dict(temp: List) -> Dict:
         "created": temp[6],
         "deadline": temp[7],
         "start_time": temp[8],
+        "task_status": temp[9]
     }
 
 
 def update_task_db(cur: Cursor, task: Dict):
     cur.execute(
         """UPDATE tusee_tasks 
-        SET creator = %s, board = %s, title = %s, description = %s, updated = %s, deadline = %s, start_time = %s
+        SET creator = %s, board = %s, title = %s, description = %s, updated = %s, deadline = %s, start_time = %s,
+        task_status = %s
         WHERE task_uuid = %s
         RETURNING task_uuid, creator, board, title, description, updated, created, deadline, start_time""",
-        (task["user_uuid"], task["board_uuid"], task["title"], task["description"], datetime.now(),
-         task["created"], task["deadline"], task["start_time"], task["task_uuid"]))
+        (task.get("user_uuid"), task.get("board_uuid"), task.get("title"), task.get("description"), datetime.now(),
+         task.get("created"), task.get("deadline"), task.get("start_time"), task.get("task_status"), task.get("task_uuid")))
     temp = cur.fetchone()
     return task_to_dict(temp)
 
