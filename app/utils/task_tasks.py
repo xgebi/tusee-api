@@ -9,13 +9,13 @@ from app import db
 from app.utils.audit_log_tasks import log_permission_violation
 
 
-def get_standalone_tasks_for_user(user_uuid: str) -> List:
+def get_standalone_tasks_for_user(user_uuid: str, status: str) -> List:
     conn = db.get_connection()
     with conn.cursor() as cur:
         cur.execute(
             """SELECT task_uuid, creator, board, title, description, updated, created, deadline, start_time, task_status 
-            FROM tusee_tasks WHERE creator = %s AND board IS NULL""",
-            (user_uuid, )
+            FROM tusee_tasks WHERE creator = %s AND board IS NULL AND task_status <> %s""",
+            (user_uuid, status)
         )
         temps = cur.fetchall()
         return [task_to_dict(temp) for temp in temps]
@@ -102,7 +102,7 @@ def update_task(task, user_uuid):
     conn = db.get_connection()
     with conn.cursor() as cur:
         cur.execute(
-            """SELECT task_uuid, creator, board, title, description, updated, created, deadline, start_time 
+            """SELECT task_uuid, creator, board, title, description, updated, created, deadline, start_time, task_status
             FROM tusee_tasks WHERE task_uuid = %s""",
             (task['task_uuid'], )
         )
@@ -117,21 +117,21 @@ def update_task(task, user_uuid):
 
         task_dict = task_to_dict(temp)
 
-        if task_dict.get('board'):
+        if task.get('board'):
             cur.execute("""SELECT tusee_user FROM tusee_encrypted_keys WHERE board = %s""",
                         (task_dict.get('board'),))
             temp = cur.fetchall()
             if len(temp) > 0:
-                return jsonify(update_task_db(cur=cur, task=task_dict)), 200
+                return jsonify(update_task_db(cur=cur, task=task)), 200
             log_permission_violation(
                 cur=cur,
                 user_uuid=user_uuid,
-                event=f"Attempted to update task {task['task_uuid']} on board {task_dict.get('board')} by {user_uuid}"
+                event=f"Attempted to update task {task['task_uuid']} on board {task.get('board')} by {user_uuid}"
             )
             return jsonify({}), 403
         else:
             if task_dict.get("creator") == user_uuid:
-                return jsonify(update_task_db(task_dict)), 200
+                return jsonify(update_task_db(cur=cur, task=task)), 200
             log_permission_violation(
                 cur=cur,
                 user_uuid=user_uuid,
@@ -203,10 +203,11 @@ def update_task_db(cur: Cursor, task: Dict):
         SET creator = %s, board = %s, title = %s, description = %s, updated = %s, deadline = %s, start_time = %s,
         task_status = %s
         WHERE task_uuid = %s
-        RETURNING task_uuid, creator, board, title, description, updated, created, deadline, start_time""",
-        (task.get("user_uuid"), task.get("board_uuid"), task.get("title"), task.get("description"), datetime.now(),
-         task.get("created"), task.get("deadline"), task.get("start_time"), task.get("task_status"), task.get("task_uuid")))
+        RETURNING task_uuid, creator, board, title, description, updated, created, deadline, start_time, task_status""",
+        (task.get("creator"), task.get("board_uuid"), task.get("title"), task.get("description"), datetime.now(),
+         task.get("deadline"), task.get("start_time"), task.get("task_status"), task.get("task_uuid")))
     temp = cur.fetchone()
+    cur.connection.commit()
     return task_to_dict(temp)
 
 

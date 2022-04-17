@@ -20,7 +20,7 @@ def get_standalone_tasks(*args, **kwargs):
     """
     user = authenticate_user(request=request)
     if user:
-        return jsonify(get_standalone_tasks_for_user(user['user_uuid']))
+        return jsonify(get_standalone_tasks_for_user(user['user_uuid'], 'done'))
 
 
 @task.route("/api/task/<id>", methods=["GET"])
