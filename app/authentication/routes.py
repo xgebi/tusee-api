@@ -99,7 +99,7 @@ def verify_totp(*args, **kwargs):
             totp = pyotp.TOTP(user['totp_secret'])
             if totp.verify(totp_data.token):
                 keys = get_user_keys(user["user_uuid"])
-                return jsonify({"totpVerified": True, "keys": keys})
+                return jsonify({"totpVerified": True, "keys": keys, "token": user["token"]})
         except psycopg.Error as e:
             print(e)
             return jsonify({"authenticated": False})
@@ -140,14 +140,16 @@ def setup_totp(*args, **kwargs):
                     update_user(user)
                     keys = get_user_keys(user["user_uuid"])
                     return jsonify({
+                        "token": user["token"],
                         "totpVerified": True,
                         "keys": keys,
                     })
 
                 return jsonify({
-                        "totpVerified": True,
-                        "keys": [],
-                    }), 401
+                    "token": user["token"],
+                    "totpVerified": True,
+                    "keys": [],
+                }), 401
 
         except psycopg.Error as e:
             print(e)

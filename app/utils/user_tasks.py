@@ -28,14 +28,15 @@ def authenticate_user(request: wrappers.Request):
     auth = request.headers.get('authorization')
     decoded = jwt.decode(auth, current_app.config["SECRET_KEY"], algorithms="HS256")
     user = get_user_by_email(decoded["email"])
-    if user["expiry_date"] == datetime.fromisoformat(decoded["expiry_date"]) \
-            and user["expiry_date"] > datetime.now().astimezone():
-        expiry_time = (datetime.now() + timedelta(0, 0, 0, 0, 30)).astimezone().isoformat()
-        user["expiry_date"] = expiry_time
-        user["token"] = jwt.encode({"email": user["email"], "expiry_date": expiry_time},
-                                   current_app.config["SECRET_KEY"], algorithm="HS256")
-        update_user(user=user)
-        return user
+    if user:
+        if user["expiry_date"] == datetime.fromisoformat(decoded["expiry_date"]) \
+                and user["expiry_date"] > datetime.now().astimezone():
+            expiry_time = (datetime.now() + timedelta(0, 0, 0, 0, 30)).astimezone().isoformat()
+            user["expiry_date"] = expiry_time
+            user["token"] = jwt.encode({"email": user["email"], "expiry_date": expiry_time},
+                                       current_app.config["SECRET_KEY"], algorithm="HS256")
+            update_user(user=user)
+            return user
     return None
 
 

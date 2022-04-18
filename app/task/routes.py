@@ -24,6 +24,9 @@ def get_standalone_tasks(*args, **kwargs):
             "token": user["token"],
             "tasks": get_standalone_tasks_for_user(user['user_uuid'], 'done')
         })
+    return jsonify({
+        "loggedOut": True
+    })
 
 
 @task.route("/api/task/<id>", methods=["GET"])
@@ -39,7 +42,7 @@ def get_task_detail(*args, task_id: str, **kwargs):
     """
     user = authenticate_user(request=request)
     if request.method == "GET":
-        return get_single_task(task_uuid=task_id, user_uuid=user["user_uuid"])
+        return get_single_task(task_uuid=task_id, user=user)
 
 
 @task.route("/api/task", methods=["POST", "PUT", "DELETE"])

@@ -56,7 +56,7 @@ def create_task(user, task):
     return jsonify({"token": user["token"], "task": task_dict}), 200
 
 
-def get_single_task(task_uuid, user_uuid):
+def get_single_task(task_uuid, user):
     conn = db.get_connection()
     with conn.cursor() as cur:
         cur.execute(
@@ -68,8 +68,8 @@ def get_single_task(task_uuid, user_uuid):
         if temp is None:
             log_permission_violation(
                 cur=cur,
-                user_uuid=user_uuid,
-                event=f"Attempted to access non-existent task {task_uuid} by {user_uuid}"
+                user_uuid=user['user_uuid'],
+                event=f"Attempted to access non-existent task {task_uuid} by {user['user_uuid']}"
             )
             return jsonify({}), 403
 
@@ -80,20 +80,26 @@ def get_single_task(task_uuid, user_uuid):
                         (task_dict.get('board'),))
             temp = cur.fetchall()
             if len(temp) > 0:
-                return jsonify(task_dict)
+                return jsonify({
+                    "token": user["token"],
+                    "task": task_dict
+                })
             log_permission_violation(
                 cur=cur,
-                user_uuid=user_uuid,
-                event=f"Attempted to access task {task_uuid} on board {task_dict.get('board')} by {user_uuid}"
+                user_uuid=user['user_uuid'],
+                event=f"Attempted to access task {task_uuid} on board {task_dict.get('board')} by {user['user_uuid']}"
             )
             return jsonify({}), 403
         else:
-            if task_dict.get("creator") == user_uuid:
-                return jsonify(task_dict)
+            if task_dict.get("creator") == user['user_uuid']:
+                return jsonify({
+                    "token": user["token"],
+                    "task": task_dict
+                })
             log_permission_violation(
                 cur=cur,
-                user_uuid=user_uuid,
-                event=f"Attempted to access task {task_uuid} by {user_uuid}"
+                user_uuid=user['user_uuid'],
+                event=f"Attempted to access task {task_uuid} by {user['user_uuid']}"
             )
             return jsonify({}), 403
 
@@ -140,7 +146,7 @@ def update_task(task, user):
             return jsonify({}), 403
 
 
-def delete_task(task_uuid, user_uuid):
+def delete_task(task_uuid, user):
     conn = db.get_connection()
     with conn.cursor() as cur:
         cur.execute(
@@ -152,8 +158,8 @@ def delete_task(task_uuid, user_uuid):
         if temp is None:
             log_permission_violation(
                 cur=cur,
-                user_uuid=user_uuid,
-                event=f"Attempted to update non-existent task {task_uuid} by {user_uuid}"
+                user_uuid=user['user_uuid'],
+                event=f"Attempted to update non-existent task {task_uuid} by {user['user_uuid']}"
             )
             return jsonify({}), 403
 
@@ -164,20 +170,26 @@ def delete_task(task_uuid, user_uuid):
                         (task_dict.get('board'),))
             temp = cur.fetchall()
             if len(temp) > 0:
-                return jsonify(delete_task_db(cur,task_uuid=task_uuid))
+                return jsonify({
+                    "token": user['token'],
+                    "task": delete_task_db(cur, task_uuid=task_uuid)
+                })
             log_permission_violation(
                 cur=cur,
-                user_uuid=user_uuid,
-                event=f"Attempted to update task {task_uuid} on board {task_dict.get('board')} by {user_uuid}"
+                user_uuid=user['user_uuid'],
+                event=f"Attempted to update task {task_uuid} on board {task_dict.get('board')} by {user['user_uuid']}"
             )
             return jsonify({}), 403
         else:
-            if task_dict.get("creator") == user_uuid:
-                return jsonify(delete_task_db(cur,task_uuid=task_uuid))
+            if task_dict.get("creator") == user['user_uuid']:
+                return jsonify({
+                    "token": user['token'],
+                    "task": delete_task_db(cur, task_uuid=task_uuid)
+                })
             log_permission_violation(
                 cur=cur,
-                user_uuid=user_uuid,
-                event=f"Attempted to update task {task_uuid} by {user_uuid}"
+                user_uuid=user['user_uuid'],
+                event=f"Attempted to update task {task_uuid} by {user['user_uuid']}"
             )
             return jsonify({}), 403
 
@@ -215,4 +227,4 @@ def delete_task_db(cur: Cursor, task_uuid: str):
     cur.execute(
         """DELETE FROM tusee_tasks WHERE task_uuid = %s""",
         (task_uuid, ))
-    return {"deleted": task_uuid}
+    return task_uuid
