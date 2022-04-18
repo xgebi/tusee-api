@@ -4,7 +4,7 @@ from flask import render_template, request, flash, redirect, url_for, current_ap
 from flask_cors import cross_origin
 
 from app.task import task
-from app.utils.task_tasks import get_standalone_tasks_for_user, get_single_task, update_task, create_task
+from app.utils.task_tasks import get_standalone_tasks_for_user, get_single_task, update_task, create_task, delete_task
 from app.utils.user_tasks import authenticate_user
 
 
@@ -64,7 +64,7 @@ def work_with_task(*args, **kwargs):
         return update_task(task=task_data, user=user)
 
     if request.method == "DELETE":
-        pass
+        return delete_task(task_uuid=task_data["task_uuid"], user=user)
 
 def get_task(task_uuid):
     pass
