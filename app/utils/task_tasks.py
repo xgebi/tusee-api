@@ -150,7 +150,7 @@ def delete_task(task_uuid, user):
     conn = db.get_connection()
     with conn.cursor() as cur:
         cur.execute(
-            """SELECT task_uuid, creator, board, title, description, updated, created, deadline, start_time 
+            """SELECT task_uuid, creator, board, title, description, updated, created, deadline, start_time, task_status
             FROM tusee_tasks WHERE task_uuid = %s""",
             (task_uuid,)
         )
