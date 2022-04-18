@@ -19,5 +19,8 @@ def create_app():
     from app.task import task
     app.register_blueprint(task)
 
+    from app.settings import settings
+    app.register_blueprint(settings)
+
     return app
 
