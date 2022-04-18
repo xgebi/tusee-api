@@ -129,9 +129,10 @@ def setup_totp(*args, **kwargs):
                 update_user(user)
                 keys = get_user_keys(user["user_uuid"])
                 return jsonify({
-                        "totpVerified": True,
-                        "keys": keys,
-                    })
+                    "totpVerified": True,
+                    "keys": keys,
+                    "token": user["token"]
+                })
             else:
                 totp = pyotp.TOTP(user["totp_secret"])
                 if totp.verify(totp_data["totpCode"]):
