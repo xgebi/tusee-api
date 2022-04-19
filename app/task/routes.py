@@ -29,7 +29,7 @@ def get_standalone_tasks(*args, **kwargs):
     })
 
 
-@task.route("/api/task/<id>", methods=["GET"])
+@task.route("/api/task/<task_id>", methods=["GET"])
 @cross_origin()
 def get_task_detail(*args, task_id: str, **kwargs):
     """

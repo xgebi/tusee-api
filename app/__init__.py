@@ -22,5 +22,8 @@ def create_app():
     from app.settings import settings
     app.register_blueprint(settings)
 
+    from app.board import board
+    app.register_blueprint(board)
+
     return app
 

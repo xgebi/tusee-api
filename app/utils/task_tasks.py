@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from typing import List, Dict
 
 from flask import jsonify
@@ -43,6 +43,15 @@ def create_task(user, task):
     conn = db.get_connection()
     with conn.cursor() as cur:
         task_uuid = str(uuid.uuid4())
+
+        if task.get("deadline"):
+            deadline = datetime.fromisoformat(task.get("deadline")) if task.get("deadline")[-1].upper() != "Z" else datetime.fromisoformat(f"{task.get('deadline')[:-1]}+00:00")
+        else:
+            deadline = None
+        if task.get("deadline"):
+            start_time = datetime.fromisoformat(task.get("startTime")) if task.get("startTime")[-1].upper() != "Z" else datetime.fromisoformat(f"{task.get('startTime')[:-1]}+00:00")
+        else:
+            start_time = None
         cur.execute(
             """INSERT INTO tusee_tasks 
             (task_uuid, creator, board, title, description, updated, created, deadline, start_time) 
@@ -204,7 +213,7 @@ def task_to_dict(temp: List) -> Dict:
         "updated": temp[5],
         "created": temp[6],
         "deadline": temp[7],
-        "start_time": temp[8],
+        "startTime": temp[8],
         "task_status": temp[9]
     }
 
