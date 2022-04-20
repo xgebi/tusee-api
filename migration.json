@@ -53,5 +53,10 @@
     "type": "sql",
     "folder": "setup",
     "file": "2022-04-17-102000_change_task_board_constraint.sql"
+  },
+  {
+    "type": "sql",
+    "folder": "setup",
+    "file": "2022-04-20-172200_change_board_columns.sql"
   }
 ]

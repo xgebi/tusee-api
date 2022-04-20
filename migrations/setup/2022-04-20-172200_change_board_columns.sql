@@ -1,0 +1,1 @@
+ALTER TABLE tusee_boards ALTER COLUMN columns TYPE text;
