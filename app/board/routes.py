@@ -10,7 +10,7 @@ from app.utils.user_tasks import authenticate_user
 
 @board.route("/api/boards", methods=["GET"])
 @cross_origin()
-def get_boards(*args, board_id: str, **kwargs):
+def get_boards(*args, **kwargs):
     """
 
 
@@ -39,12 +39,11 @@ def get_board(*args, board_id: str, **kwargs):
     :return:
     """
     user = authenticate_user(request=request)
-    if request.method == "GET":
-        return jsonify({
-            "token": user["token"],
-            "boardInfo": fetch_board(board_uuid=board_id, user=user),
-            "tasks": get_tasks_for_board(board_uuid=board_id, user_uuid=user["userUuid"])
-        })
+    return jsonify({
+        "token": user["token"],
+        "boardInfo": fetch_board(board_uuid=board_id, user=user),
+        "tasks": get_tasks_for_board(board_uuid=board_id, user_uuid=user["userUuid"])
+    })
 
 
 @board.route("/api/board", methods=["POST", "PUT", "DELETE"])
