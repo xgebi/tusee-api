@@ -4,6 +4,7 @@ from flask_cors import cross_origin
 
 from app.board import board
 from app.utils.board_tasks import create_board, delete_board, update_board, fetch_board, fetch_available_boards
+from app.utils.key_tasks import create_key
 from app.utils.task_tasks import get_tasks_for_board
 from app.utils.user_tasks import authenticate_user
 

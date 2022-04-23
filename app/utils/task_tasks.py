@@ -48,7 +48,7 @@ def create_task(user, task):
             deadline = datetime.fromisoformat(task.get("deadline")) if task.get("deadline")[-1].upper() != "Z" else datetime.fromisoformat(f"{task.get('deadline')[:-1]}+00:00")
         else:
             deadline = None
-        if task.get("deadline"):
+        if task.get("startDate"):
             start_time = datetime.fromisoformat(task.get("startTime")) if task.get("startTime")[-1].upper() != "Z" else datetime.fromisoformat(f"{task.get('startTime')[:-1]}+00:00")
         else:
             start_time = None
@@ -58,7 +58,7 @@ def create_task(user, task):
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
             RETURNING task_uuid, creator, board, title, description, updated, created, deadline, start_time, task_status""",
             (task_uuid, user["user_uuid"], task.get("board_uuid"), task.get("title"), task.get("description"), datetime.now(),
-             datetime.now(), task.get("deadline"), task.get("start_time")))
+             datetime.now(), deadline, start_time))
         temp = cur.fetchone()
         task_dict = task_to_dict(temp)
     conn.commit()

@@ -56,15 +56,17 @@ def work_with_task(*args, **kwargs):
     :return:
     """
     user = authenticate_user(request=request)
-    task_data = json.loads(request.data)
-    if request.method == "POST":
-        return create_task(task=task_data, user=user)
+    if user:
+        task_data = json.loads(request.data)
+        if request.method == "POST":
+            return create_task(task=task_data, user=user)
 
-    if request.method == "PUT":
-        return update_task(task=task_data, user=user)
+        if request.method == "PUT":
+            return update_task(task=task_data, user=user)
 
-    if request.method == "DELETE":
-        return delete_task(task_uuid=task_data["task_uuid"], user=user)
+        if request.method == "DELETE":
+            return delete_task(task_uuid=task_data["task_uuid"], user=user)
+    return jsonify({"loggedOut": True})
 
 def get_task(task_uuid):
     pass

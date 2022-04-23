@@ -7,6 +7,7 @@ from psycopg import Cursor
 
 from app import db
 from app.utils.audit_log_tasks import log_permission_violation
+from app.utils.key_tasks import create_key
 
 
 def fetch_board(board_uuid, user):
@@ -50,8 +51,8 @@ def fetch_available_boards(user):
         return []
 
 
-def create_board(user, board):
-    task_dict = None
+def create_board(user, board_data):
+    board = board_data.board
     conn = db.get_connection()
     with conn.cursor() as cur:
         board_uuid = str(uuid.uuid4())
@@ -66,7 +67,8 @@ def create_board(user, board):
         temp = cur.fetchone()
         task_dict = board_to_dict(temp)
     conn.commit()
-    return jsonify({"token": user["token"], "board": task_dict}), 200
+    key = create_key(tusee_user=user["userUuid"], key=board_data.key, board=board_uuid)
+    return jsonify({"token": user["token"], "board": task_dict, "key": key}), 200
 
 
 def update_board(board, user):
