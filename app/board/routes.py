@@ -60,7 +60,7 @@ def work_with_board(*args, **kwargs):
     user = authenticate_user(request=request)
     board_data = json.loads(request.data)
     if request.method == "POST":
-        return create_board(board=board_data, user=user)
+        return create_board(board_data=board_data, user=user)
 
     if request.method == "PUT":
         return update_board(board=board_data, user=user)

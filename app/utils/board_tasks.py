@@ -43,7 +43,7 @@ def fetch_available_boards(user):
     conn = db.get_connection()
     with conn.cursor() as cur:
         cur.execute("""SELECT board_uuid, name, description, owner, created, columns FROM tusee_boards 
-        WHERE board_uuid = (SELECT board FROM tusee_encrypted_keys WHERE tusee_user = %s)""",
+        WHERE board_uuid = (SELECT board FROM tusee_encrypted_keys WHERE tusee_user = %s AND board IS NOT NULL)""",
                     (user['user_uuid'],))
         temp = cur.fetchall()
         if len(temp) > 0:
@@ -52,7 +52,7 @@ def fetch_available_boards(user):
 
 
 def create_board(user, board_data):
-    board = board_data.board
+    board = board_data.get('board')
     conn = db.get_connection()
     with conn.cursor() as cur:
         board_uuid = str(uuid.uuid4())
@@ -62,12 +62,12 @@ def create_board(user, board_data):
             (board_uuid, name, description, owner, created, columns) 
             VALUES (%s, %s, %s, %s, %s, %s)
             RETURNING board_uuid, name, description, owner, created, columns""",
-            (board_uuid, board.get('name'), board.get('description'), user["userUuid"], datetime.now(),
+            (board_uuid, board.get('name'), board.get('description'), user["user_uuid"], datetime.now(),
              board.get('columns')))
         temp = cur.fetchone()
         task_dict = board_to_dict(temp)
     conn.commit()
-    key = create_key(tusee_user=user["userUuid"], key=board_data.key, board=board_uuid)
+    key = create_key(tusee_user=user["user_uuid"], key=board_data.get("key").get("key"), board=board_uuid)
     return jsonify({"token": user["token"], "board": task_dict, "key": key}), 200
 
 
