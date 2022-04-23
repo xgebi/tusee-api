@@ -10,6 +10,7 @@ from argon2 import PasswordHasher, exceptions
 from app import db
 
 from app.authentication import authentication
+from app.utils.board_tasks import fetch_available_boards
 from app.utils.key_tasks import create_key, get_user_keys
 from app.utils.user_tasks import get_user_by_email, update_user, authenticate_user, create_user
 
@@ -68,6 +69,7 @@ def login_user(*args, **kwargs):
             user["password"] = ""
             if not user["uses_totp"] and not user["first_login"]:
                 user["keys"] = get_user_keys(tusee_user=user["user_uuid"])
+                user["boards"] = fetch_available_boards(user=user)
             else:
                 user["keys"] = []
             return jsonify(user)
@@ -99,7 +101,8 @@ def verify_totp(*args, **kwargs):
             totp = pyotp.TOTP(user['totp_secret'])
             if totp.verify(totp_data.token):
                 keys = get_user_keys(user["user_uuid"])
-                return jsonify({"totpVerified": True, "keys": keys, "token": user["token"]})
+                boards = fetch_available_boards(user=user)
+                return jsonify({"totpVerified": True, "keys": keys, "token": user["token"], "boards": boards})
         except psycopg.Error as e:
             print(e)
             return jsonify({"authenticated": False})

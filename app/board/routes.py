@@ -28,7 +28,7 @@ def get_boards(*args, **kwargs):
         })
 
 
-@board.route("/api/board/<board_id>", methods=["GET"])
+@board.route("/api/board-view/<board_id>", methods=["GET"])
 @cross_origin()
 def get_board(*args, board_id: str, **kwargs):
     """
@@ -42,8 +42,26 @@ def get_board(*args, board_id: str, **kwargs):
     user = authenticate_user(request=request)
     return jsonify({
         "token": user["token"],
-        "boardInfo": fetch_board(board_uuid=board_id, user=user),
-        "tasks": get_tasks_for_board(board_uuid=board_id, user_uuid=user["userUuid"])
+        "board": fetch_board(board_uuid=board_id, user=user),
+        "tasks": get_tasks_for_board(board_uuid=board_id, user_uuid=user["user_uuid"])
+    })
+
+
+@board.route("/api/board/<board_id>", methods=["GET"])
+@cross_origin()
+def get_board_view(*args, board_id: str, **kwargs):
+    """
+
+
+    :param board_id:
+    :param args:
+    :param kwargs:
+    :return:
+    """
+    user = authenticate_user(request=request)
+    return jsonify({
+        "token": user["token"],
+        "board": fetch_board(board_uuid=board_id, user=user)
     })
 
 
@@ -66,4 +84,4 @@ def work_with_board(*args, **kwargs):
         return update_board(board=board_data, user=user)
 
     if request.method == "DELETE":
-        return delete_board(board_uuid=board_data["board_uuid"], user=user)
+        return delete_board(board_uuid=board_data["boardUuid"], user=user)

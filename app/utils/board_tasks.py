@@ -24,26 +24,19 @@ def fetch_board(board_uuid, user):
             )
             return {}
 
-        board_dict = board_to_dict(temp)
-
-        cur.execute("""SELECT tusee_user FROM tusee_encrypted_keys WHERE board = %s""",
+        cur.execute("""SELECT board_uuid, name, description, owner, created, columns FROM tusee_boards 
+                WHERE board_uuid = %s""",
                     (board_uuid,))
-        temp = cur.fetchall()
-        if len(temp) > 0:
-            return board_dict
-        log_permission_violation(
-            cur=cur,
-            user_uuid=user['user_uuid'],
-            event=f"Attempted to update board {board_uuid} by {user['user_uuid']}"
-        )
-        return {}
+        temp = cur.fetchone()
+
+        return board_to_dict(temp)
 
 
 def fetch_available_boards(user):
     conn = db.get_connection()
     with conn.cursor() as cur:
         cur.execute("""SELECT board_uuid, name, description, owner, created, columns FROM tusee_boards 
-        WHERE board_uuid = (SELECT board FROM tusee_encrypted_keys WHERE tusee_user = %s AND board IS NOT NULL)""",
+        WHERE board_uuid IN (SELECT board FROM tusee_encrypted_keys WHERE tusee_user = %s AND board IS NOT NULL)""",
                     (user['user_uuid'],))
         temp = cur.fetchall()
         if len(temp) > 0:
@@ -94,7 +87,7 @@ def update_board(board, user):
                     (board_dict.get('boardUuid'),))
         temp = cur.fetchall()
         if len(temp) > 0:
-            return jsonify({"token": user["token"], "task": update_board_db(cur=cur, board=board)}), 200
+            return jsonify({"token": user["token"], "board": update_board_db(cur=cur, board=board)}), 200
         log_permission_violation(
             cur=cur,
             user_uuid=user['user_uuid'],
@@ -162,6 +155,10 @@ def update_board_db(cur: Cursor, board: Dict):
 
 def delete_board_db(cur: Cursor, board_uuid: str):
     cur.execute(
+        """DELETE FROM tusee_encrypted_keys WHERE board = %s""",
+        (board_uuid,))
+    cur.execute(
         """DELETE FROM tusee_boards WHERE board_uuid = %s""",
         (board_uuid, ))
+    cur.connection.commit()
     return board_uuid
