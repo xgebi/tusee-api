@@ -21,11 +21,12 @@ def get_boards(*args, **kwargs):
     :return:
     """
     user = authenticate_user(request=request)
-    if request.method == "GET":
+    if user:
         return jsonify({
             "token": user["token"],
             "boards": fetch_available_boards(user=user),
         })
+    return jsonify({"loggedOut": True})
 
 
 @board.route("/api/board-view/<board_id>", methods=["GET"])
@@ -40,11 +41,13 @@ def get_board(*args, board_id: str, **kwargs):
     :return:
     """
     user = authenticate_user(request=request)
-    return jsonify({
-        "token": user["token"],
-        "board": fetch_board(board_uuid=board_id, user=user),
-        "tasks": get_tasks_for_board(board_uuid=board_id, user_uuid=user["user_uuid"])
-    })
+    if user:
+        return jsonify({
+            "token": user["token"],
+            "board": fetch_board(board_uuid=board_id, user=user),
+            "tasks": get_tasks_for_board(board_uuid=board_id, user_uuid=user["user_uuid"])
+        })
+    return jsonify({"loggedOut": True})
 
 
 @board.route("/api/board/<board_id>", methods=["GET"])
@@ -59,10 +62,12 @@ def get_board_view(*args, board_id: str, **kwargs):
     :return:
     """
     user = authenticate_user(request=request)
-    return jsonify({
-        "token": user["token"],
-        "board": fetch_board(board_uuid=board_id, user=user)
-    })
+    if user:
+        return jsonify({
+            "token": user["token"],
+            "board": fetch_board(board_uuid=board_id, user=user)
+        })
+    return jsonify({"loggedOut": True})
 
 
 @board.route("/api/board", methods=["POST", "PUT", "DELETE"])
@@ -76,12 +81,14 @@ def work_with_board(*args, **kwargs):
     :return:
     """
     user = authenticate_user(request=request)
-    board_data = json.loads(request.data)
-    if request.method == "POST":
-        return create_board(board_data=board_data, user=user)
+    if user:
+        board_data = json.loads(request.data)
+        if request.method == "POST":
+            return create_board(board_data=board_data, user=user)
 
-    if request.method == "PUT":
-        return update_board(board=board_data, user=user)
+        if request.method == "PUT":
+            return update_board(board=board_data, user=user)
 
-    if request.method == "DELETE":
-        return delete_board(board_uuid=board_data["boardUuid"], user=user)
+        if request.method == "DELETE":
+            return delete_board(board_uuid=board_data["boardUuid"], user=user)
+    return jsonify({"loggedOut": True})

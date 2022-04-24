@@ -6,6 +6,7 @@ import os
 
 db = Connector()
 
+
 def create_app():
     app = Flask(__name__)
     app.config.from_pyfile(os.path.join(os.getcwd(), 'config', f'{os.environ["FLASK_ENV"]}.py'))
@@ -26,4 +27,3 @@ def create_app():
     app.register_blueprint(board)
 
     return app
-

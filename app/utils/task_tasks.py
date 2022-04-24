@@ -57,7 +57,7 @@ def create_task(user, task):
             (task_uuid, creator, board, title, description, updated, created, deadline, start_time) 
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
             RETURNING task_uuid, creator, board, title, description, updated, created, deadline, start_time, task_status""",
-            (task_uuid, user["user_uuid"], task.get("board_uuid"), task.get("title"), task.get("description"), datetime.now(),
+            (task_uuid, user["user_uuid"], task.get("board"), task.get("title"), task.get("description"), datetime.now(),
              datetime.now(), deadline, start_time))
         temp = cur.fetchone()
         task_dict = task_to_dict(temp)
@@ -134,7 +134,7 @@ def update_task(task, user):
 
         if task.get('board'):
             cur.execute("""SELECT tusee_user FROM tusee_encrypted_keys WHERE board = %s""",
-                        (task_dict.get('board'),))
+                        (task.get('board'),))
             temp = cur.fetchall()
             if len(temp) > 0:
                 return jsonify({"token": user["token"], "task": update_task_db(cur=cur, task=task)}), 200
@@ -225,8 +225,8 @@ def update_task_db(cur: Cursor, task: Dict):
         task_status = %s
         WHERE task_uuid = %s
         RETURNING task_uuid, creator, board, title, description, updated, created, deadline, start_time, task_status""",
-        (task.get("creator"), task.get("board_uuid"), task.get("title"), task.get("description"), datetime.now(),
-         task.get("deadline"), task.get("start_time"), task.get("task_status"), task.get("task_uuid")))
+        (task.get("creator"), task.get("board"), task.get("title"), task.get("description"), datetime.now(),
+         task.get("deadline"), task.get("startTime"), task.get("task_status"), task.get("task_uuid")))
     temp = cur.fetchone()
     cur.connection.commit()
     return task_to_dict(temp)
