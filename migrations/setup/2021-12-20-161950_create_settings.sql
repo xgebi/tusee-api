@@ -6,6 +6,9 @@ CREATE TABLE IF NOT EXISTS tusee_settings (
 	settings_value			VARCHAR(200) NOT NULL
 );
 
+INSERT INTO tusee_settings (settings_name, display_name, settings_value_type, settings_value)
+VALUES ('registrationEnabled', 'Registration enabled', 'Boolean', TRUE);
+
 COMMENT ON COLUMN tusee_settings.settings_name IS 'Name of the setting in alphanumeric and underscores';
 COMMENT ON COLUMN tusee_settings.display_name IS 'Human readable name of setting';
 COMMENT ON COLUMN tusee_settings.settings_value_type IS 'Indicator for how front-end should render setting';

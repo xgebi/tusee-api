@@ -1,0 +1,1 @@
+ALTER TABLE tusee_tasks ADD COLUMN done_date TIMESTAMP WITH TIME ZONE;

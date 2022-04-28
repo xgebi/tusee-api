@@ -10,9 +10,9 @@ def get_app_settings() -> List or None:
         temp = cur.fetchall()
         if temp:
             return [{
-                "settings_name": item[0],
-                "display_name": item[2],
-                "settings_value_type": item[2],
-                "settings_value": item[3],
+                "settingsName": item[0],
+                "displayName": item[2],
+                "settingsValueType": item[2],
+                "settingsValue": item[3],
             } for item in temp]
         return None

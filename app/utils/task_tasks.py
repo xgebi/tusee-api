@@ -9,13 +9,25 @@ from app import db
 from app.utils.audit_log_tasks import log_permission_violation
 
 
-def get_standalone_tasks_for_user(user_uuid: str, status: str) -> List:
+def get_standalone_tasks_for_user(user_uuid: str) -> List:
     conn = db.get_connection()
     with conn.cursor() as cur:
         cur.execute(
             """SELECT task_uuid, creator, board, title, description, updated, created, deadline, start_time, task_status 
-            FROM tusee_tasks WHERE creator = %s AND board IS NULL AND task_status <> %s""",
-            (user_uuid, status)
+            FROM tusee_tasks WHERE creator = %s AND board IS NULL AND done_date IS NULL""",
+            (user_uuid, )
+        )
+        temps = cur.fetchall()
+        return [task_to_dict(temp) for temp in temps]
+
+
+def get_done_standalone_tasks_for_user(user_uuid: str, ) -> List:
+    conn = db.get_connection()
+    with conn.cursor() as cur:
+        cur.execute(
+            """SELECT task_uuid, creator, board, title, description, updated, created, deadline, start_time, task_status 
+            FROM tusee_tasks WHERE creator = %s AND board IS NULL AND done_date IS NOT NULL""",
+            (user_uuid, )
         )
         temps = cur.fetchall()
         return [task_to_dict(temp) for temp in temps]
@@ -54,11 +66,11 @@ def create_task(user, task):
             start_time = None
         cur.execute(
             """INSERT INTO tusee_tasks 
-            (task_uuid, creator, board, title, description, updated, created, deadline, start_time) 
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            (task_uuid, creator, board, title, description, updated, created, deadline, start_time, task_status) 
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             RETURNING task_uuid, creator, board, title, description, updated, created, deadline, start_time, task_status""",
             (task_uuid, user["user_uuid"], task.get("board"), task.get("title"), task.get("description"), datetime.now(),
-             datetime.now(), deadline, start_time))
+             datetime.now(), deadline, start_time, task.get("task_status")))
         temp = cur.fetchone()
         task_dict = task_to_dict(temp)
     conn.commit()
@@ -222,11 +234,11 @@ def update_task_db(cur: Cursor, task: Dict):
     cur.execute(
         """UPDATE tusee_tasks 
         SET creator = %s, board = %s, title = %s, description = %s, updated = %s, deadline = %s, start_time = %s,
-        task_status = %s
+        task_status = %s, done_date = %s
         WHERE task_uuid = %s
         RETURNING task_uuid, creator, board, title, description, updated, created, deadline, start_time, task_status""",
         (task.get("creator"), task.get("board"), task.get("title"), task.get("description"), datetime.now(),
-         task.get("deadline"), task.get("startTime"), task.get("task_status"), task.get("task_uuid")))
+         task.get("deadline"), task.get("startTime"), task.get("task_status"), task.get('done_date'), task.get("task_uuid")))
     temp = cur.fetchone()
     cur.connection.commit()
     return task_to_dict(temp)

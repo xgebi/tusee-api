@@ -58,5 +58,10 @@
     "type": "sql",
     "folder": "setup",
     "file": "2022-04-20-172200_change_board_columns.sql"
+  },
+  {
+    "type": "sql",
+    "folder": "setup",
+    "file": "2022-04-28-155001_add_task_column.sql"
   }
 ]
