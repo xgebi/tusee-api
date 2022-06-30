@@ -3,6 +3,7 @@ import uuid
 from typing import Dict
 
 import jwt
+import psycopg
 import pyotp
 from argon2 import PasswordHasher
 from flask import wrappers, current_app
@@ -10,8 +11,7 @@ from flask import wrappers, current_app
 from app import db
 
 
-def create_user(display_name: str, password: str, email: str) -> str:
-    conn = db.get_connection()
+def create_user(display_name: str, password: str, email: str, conn: psycopg.Connection) -> str:
     with conn.cursor() as cur:
         ph = PasswordHasher()
         now = datetime.now()
@@ -40,34 +40,18 @@ def authenticate_user(request: wrappers.Request):
     return None
 
 
-def get_user_by_email(email: str) -> Dict or None:
-    conn = db.get_connection()
-    with conn.cursor() as cur:
-        cur.execute("""SELECT user_uuid, display_name, password, email, token, expiry_date, 
+def get_user_by_email(email: str, conn: psycopg.Connection) -> Dict or None:
+    with conn.cursor(row_factory=psycopg.rows.dict_row) as cur:
+        cur.execute("""SELECT user_uuid, display_name, password, email, 
         created, first_login, uses_totp, totp_secret FROM tusee_users WHERE email = %s""", (email,))
-        temp = cur.fetchone()
-        if temp:
-            return {
-                "user_uuid": temp[0],
-                "display_name": temp[1],
-                "password": temp[2],
-                "email": temp[3],
-                "token": temp[4],
-                "expiry_date": temp[5],
-                "created": temp[6],
-                "first_login": temp[7],
-                "uses_totp": temp[8],
-                "totp_secret": temp[9]
-            }
-        return None
+        return cur.fetchone()
 
 
-def update_user(user: Dict):
-    conn = db.get_connection()
+def update_user(user: Dict, conn: psycopg.Connection):
     with conn.cursor() as cur:
-        cur.execute("""UPDATE tusee_users SET display_name = %s, password = %s, email = %s, token = %s, expiry_date = %s, 
+        cur.execute("""UPDATE tusee_users SET display_name = %s, password = %s, email = %s, 
         first_login = %s, uses_totp = %s, totp_secret = %s WHERE user_uuid = %s""",
-                    (user.get('display_name'), user.get('password'), user.get('email'), user.get('token'),
-                     user.get('expiry_date'), user.get('first_login'), user.get('uses_totp'),
+                    (user.get('display_name'), user.get('password'), user.get('email'),
+                     user.get('first_login'), user.get('uses_totp'),
                      user.get('totp_secret'), user.get('user_uuid')))
     conn.commit()

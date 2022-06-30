@@ -10,6 +10,7 @@ from argon2 import PasswordHasher, exceptions
 from app import db
 
 from app.authentication import authentication
+from app.db.db_connection import db_connection
 from app.utils.board_tasks import fetch_available_boards
 from app.utils.key_tasks import create_key, get_user_keys
 from app.utils.user_tasks import get_user_by_email, update_user, authenticate_user, create_user
@@ -17,7 +18,8 @@ from app.utils.user_tasks import get_user_by_email, update_user, authenticate_us
 
 @authentication.route("/api/register", methods=["POST"])
 @cross_origin()
-def register_user(*args, **kwargs):
+@db_connection
+def register_user(*args, connection: psycopg.Connection, **kwargs):
     """
     Function which will parse JSON to User object
 
@@ -31,8 +33,9 @@ def register_user(*args, **kwargs):
             display_name=user_json.get('displayName'),
             password=user_json.get('password'),
             email=user_json.get('email'),
+            conn=connection
         )
-        create_key(tusee_user=user_uuid, key=user_json.get('key'))
+        create_key(tusee_user=user_uuid, key=user_json.get('key'), conn=connection)
         return jsonify({"registrationSuccessful": True})
     except psycopg.Error as e:
         print(e)
@@ -44,17 +47,19 @@ def register_user(*args, **kwargs):
 
 @authentication.route("/api/login", methods=["POST"])
 @cross_origin()
-def login_user(*args, **kwargs):
+@db_connection
+def login_user(*args, connection: psycopg.Connection, **kwargs):
     """
     Function which will parse JSON to User object
 
+    :param connection:
     :param args:
     :param kwargs:
     :return:
     """
     user_json = json.loads(request.data)
     try:
-        user = get_user_by_email(email=user_json.get('email'))
+        user = get_user_by_email(email=user_json.get('email'), conn=connection)
         if user is None:
             return jsonify({"loginSuccessful": False, "error": "credentials"}), 403
         ph = PasswordHasher()
@@ -65,11 +70,11 @@ def login_user(*args, **kwargs):
             token = jwt.encode({"email": user["email"], "expiry_date": expiry_time},
                                current_app.config["SECRET_KEY"], algorithm="HS256")
             user["token"] = token
-            update_user(user)
+            update_user(user, conn=connection)
             user["password"] = ""
             if not user["uses_totp"] and not user["first_login"]:
-                user["keys"] = get_user_keys(tusee_user=user["user_uuid"])
-                user["boards"] = fetch_available_boards(user=user)
+                user["keys"] = get_user_keys(tusee_user=user["user_uuid"], conn=connection)
+                user["boards"] = fetch_available_boards(user=user, conn=connection)
             else:
                 user["keys"] = []
             return jsonify(user)
@@ -86,10 +91,12 @@ def login_user(*args, **kwargs):
 
 @authentication.route("/api/verify-totp", methods=["POST"])
 @cross_origin()
-def verify_totp(*args, **kwargs):
+@db_connection
+def verify_totp(*args, connection: psycopg.Connection, **kwargs):
     """
     Function which will parse JSON to User object
 
+    :param connection:
     :param args:
     :param kwargs:
     :return:
@@ -100,8 +107,8 @@ def verify_totp(*args, **kwargs):
         try:
             totp = pyotp.TOTP(user['totp_secret'])
             if totp.verify(totp_data.token):
-                keys = get_user_keys(user["user_uuid"])
-                boards = fetch_available_boards(user=user)
+                keys = get_user_keys(user["user_uuid"], conn=connection)
+                boards = fetch_available_boards(user=user, conn=connection)
                 return jsonify({"totpVerified": True, "keys": keys, "token": user["token"], "boards": boards})
         except psycopg.Error as e:
             print(e)
@@ -114,10 +121,12 @@ def verify_totp(*args, **kwargs):
 
 @authentication.route("/api/setup-totp", methods=["POST"])
 @cross_origin()
-def setup_totp(*args, **kwargs):
+@db_connection
+def setup_totp(*args, connection: psycopg.Connection, **kwargs):
     """
     Function which will parse JSON to User object
 
+    :param connection:
     :param args:
     :param kwargs:
     :return:
@@ -129,8 +138,8 @@ def setup_totp(*args, **kwargs):
             if totp_data["skip"]:
                 user["first_login"] = False
                 user["uses_totp"] = False
-                update_user(user)
-                keys = get_user_keys(user["user_uuid"])
+                update_user(user, conn=connection)
+                keys = get_user_keys(user["user_uuid"], conn=connection)
                 return jsonify({
                     "totpVerified": True,
                     "keys": keys,
@@ -142,7 +151,7 @@ def setup_totp(*args, **kwargs):
                     user["first_login"] = False
                     user["uses_totp"] = True
                     update_user(user)
-                    keys = get_user_keys(user["user_uuid"])
+                    keys = get_user_keys(user["user_uuid"], conn=connection)
                     return jsonify({
                         "token": user["token"],
                         "totpVerified": True,
