@@ -9,25 +9,29 @@ from argon2 import PasswordHasher
 from flask import wrappers, current_app
 
 from app import db
+from app.exceptions import UserExistsException
 
 
 def create_user(display_name: str, password: str, email: str, conn: psycopg.Connection) -> str:
     with conn.cursor() as cur:
+        cur.execute("""SELECT user_uuid FROM tusee_users WHERE email = %s""", (email, ))
+        user_exists = len(cur.fetchall()) > 0
+        if user_exists:
+            raise UserExistsException("User already exists")
         ph = PasswordHasher()
         now = datetime.now()
         user_uuid = str(uuid.uuid4())
-        cur.execute("""INSERT INTO tusee_users (user_uuid, display_name, password, email, token, expiry_date, 
-        created, first_login, uses_totp, totp_secret) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
-                    (user_uuid, display_name, ph.hash(password), email, '', now, now, True, True,
+        cur.execute("""INSERT INTO tusee_users (user_uuid, display_name, password, email, created, first_login, uses_totp, totp_secret) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)""",
+                    (user_uuid, display_name, ph.hash(password), email, now, True, True,
                      pyotp.random_base32()))
     conn.commit()
     return user_uuid
 
 
-def authenticate_user(request: wrappers.Request):
+def authenticate_user(request: wrappers.Request, connection: psycopg.Connection):
     auth = request.headers.get('authorization')
     decoded = jwt.decode(auth, current_app.config["SECRET_KEY"], algorithms="HS256")
-    user = get_user_by_email(decoded["email"])
+    user = get_user_by_email(decoded["email"], conn=connection)
     if user:
         if user["expiry_date"] == datetime.fromisoformat(decoded["expiry_date"]) \
                 and user["expiry_date"] > datetime.now().astimezone():
