@@ -10,6 +10,7 @@ from argon2 import PasswordHasher, exceptions
 from app import db
 
 from app.authentication import authentication
+from app.board.routes import get_boards
 from app.db.db_connection import db_connection
 from app.exceptions import UserExistsException
 from app.utils.board_tasks import fetch_available_boards
@@ -75,7 +76,8 @@ def login_user(*args, connection: psycopg.Connection, **kwargs):
 			user["token"] = token
 			update_user(user, conn=connection)
 			user["password"] = ""
-			user["totp_secret"] = ""
+			if not user["first_login"]:
+				user["totp_secret"] = ""
 			if not user["uses_totp"] and not user["first_login"]:
 				user["keys"] = get_user_keys(tusee_user=user["user_uuid"], conn=connection)
 				user["boards"] = fetch_available_boards(user=user, conn=connection)
@@ -146,10 +148,12 @@ def setup_totp(*args, connection: psycopg.Connection, **kwargs):
 				user["uses_totp"] = False
 				update_user(user, conn=connection)
 				keys = get_user_keys(user["user_uuid"], conn=connection)
+				boards = fetch_available_boards(conn=connection, user=user)
 				return jsonify({
 					"totpVerified": True,
 					"keys": keys,
-					"token": user["token"]
+					"token": user["token"],
+					"boards": boards,
 				})
 			else:
 				totp = pyotp.TOTP(user["totp_secret"])
@@ -158,16 +162,19 @@ def setup_totp(*args, connection: psycopg.Connection, **kwargs):
 					user["uses_totp"] = True
 					update_user(user)
 					keys = get_user_keys(user["user_uuid"], conn=connection)
+					boards = fetch_available_boards(conn=connection, user=user)
 					return jsonify({
 						"token": user["token"],
 						"totpVerified": True,
 						"keys": keys,
+						"boards": boards,
 					})
 
 				return jsonify({
 					"token": user["token"],
 					"totpVerified": True,
 					"keys": [],
+					"boards": [],
 				}), 401
 
 		except psycopg.Error as e:
