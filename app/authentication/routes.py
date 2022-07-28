@@ -97,6 +97,26 @@ def login_user(*args, connection: psycopg.Connection, **kwargs):
 		return jsonify({"loginSuccessful": False, "error": "general"}), 500
 
 
+@authentication.route("/api/relogin", methods=["GET"])
+@cross_origin()
+@db_connection
+def relogin_user(*args, connection: psycopg.Connection, **kwargs):
+	"""
+	Function which will parse JSON to User object
+
+	:param connection:
+	:param args:
+	:param kwargs:
+	:return:
+	"""
+	user = authenticate_user(request=request, connection=connection)
+	user["loginSuccessful"] = True
+	user["password"] = ""
+	user["keys"] = []
+	user["boards"] = fetch_available_boards(user=user, conn=connection)
+	return jsonify(user), 200
+
+
 @authentication.route("/api/totp/verify", methods=["POST"])
 @cross_origin()
 @db_connection
@@ -109,7 +129,7 @@ def verify_totp(*args, connection: psycopg.Connection, **kwargs):
 	:param kwargs:
 	:return:
 	"""
-	user = authenticate_user(request)
+	user = authenticate_user(request=request, connection=connection)
 	totp_data = json.loads(request.data)
 	if user:
 		try:
@@ -139,7 +159,7 @@ def setup_totp(*args, connection: psycopg.Connection, **kwargs):
 	:param kwargs:
 	:return:
 	"""
-	user = authenticate_user(request, connection=connection)
+	user = authenticate_user(request=request, connection=connection)
 	if user:
 		try:
 			totp_data = json.loads(request.data)

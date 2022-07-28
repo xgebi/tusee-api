@@ -58,7 +58,7 @@ def create_board(user, board_data, conn: psycopg.Connection):
 		temp = cur.fetchone()
 		task_dict = temp
 	conn.commit()
-	key = create_key(tusee_user=user["user_uuid"], key=board_data.get("key").get("key"), board=board_uuid)
+	key = create_key(tusee_user=user["user_uuid"], key=board_data.get("key").get("key"), board=board_uuid, conn=conn)
 	return jsonify({"token": user["token"], "board": task_dict, "key": key}), 200
 
 
