@@ -47,8 +47,8 @@ def get_board(*args, board_id: str, connection: psycopg.Connection, **kwargs):
     user = authenticate_user(request=request, connection=connection)
     return jsonify({
         "token": user["token"],
-        "board": fetch_board(board_uuid=board_id, user=user),
-        "tasks": get_tasks_for_board(board_uuid=board_id, user_uuid=user["user_uuid"])
+        "board": fetch_board(board_uuid=board_id, user=user, conn=connection),
+        "tasks": get_tasks_for_board(board_uuid=board_id, user_uuid=user["user_uuid"], conn=connection)
     })
 
 
