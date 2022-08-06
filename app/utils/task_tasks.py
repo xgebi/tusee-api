@@ -167,10 +167,12 @@ def delete_task(task_uuid, user, conn: psycopg.Connection):
                         (task_dict.get('board'),))
             temp = cur.fetchall()
             if len(temp) > 0:
-                return jsonify({
+                result = jsonify({
                     "token": user['token'],
                     "task": delete_task_db(cur, task_uuid=task_uuid)
                 })
+                conn.commit()
+                return result
             log_permission_violation(
                 cur=cur,
                 user_uuid=user['user_uuid'],
@@ -179,10 +181,12 @@ def delete_task(task_uuid, user, conn: psycopg.Connection):
             return jsonify({}), 403
         else:
             if task_dict.get("creator") == user['user_uuid']:
-                return jsonify({
+                result = jsonify({
                     "token": user['token'],
                     "task": delete_task_db(cur, task_uuid=task_uuid)
                 })
+                conn.commit()
+                return result
             log_permission_violation(
                 cur=cur,
                 user_uuid=user['user_uuid'],

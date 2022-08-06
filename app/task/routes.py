@@ -49,7 +49,7 @@ def get_task_detail(*args, task_id: str, connection: psycopg.Connection, **kwarg
         return get_single_task(task_uuid=task_id, user=user, conn=connection)
 
 
-@task.route("/api/task", methods=["POST", "PUT", "DELETE"])
+@task.route("/api/task", methods=["POST", "PUT"])
 @cross_origin()
 @db_connection
 def work_with_task(*args, connection: psycopg.Connection, **kwargs):
@@ -74,5 +74,20 @@ def work_with_task(*args, connection: psycopg.Connection, **kwargs):
     return jsonify({"loggedOut": True})
 
 
-def get_task(task_uuid):
-    pass
+@task.route("/api/task/<task_id>", methods=["DELETE"])
+@cross_origin()
+@db_connection
+def remove_task(*args, task_id: str, connection: psycopg.Connection, **kwargs):
+    """
+
+
+    :param connection:
+    :param task_id:
+    :param args:
+    :param kwargs:
+    :return:
+    """
+    user = authenticate_user(request=request, connection=connection)
+    if user:
+        return delete_task(task_uuid=task_id, user=user, conn=connection)
+    return jsonify({"loggedOut": True})
