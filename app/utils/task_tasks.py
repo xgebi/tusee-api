@@ -54,7 +54,7 @@ def create_task(user, task, conn: psycopg.Connection):
             (task_uuid, creator, board, title, description, updated, created, deadline, start_time) 
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
             RETURNING task_uuid, creator, board, title, description, updated, created, deadline, start_time, task_status""",
-            (task_uuid, user["user_uuid"], task.get("board_uuid"), task.get("title"), task.get("description"), datetime.now(),
+            (task_uuid, user["user_uuid"], task.get("board"), task.get("title"), task.get("description"), datetime.now(),
              datetime.now(), deadline, start_time))
         task_dict = cur.fetchone()
 
@@ -198,7 +198,7 @@ def update_task_db(cur: Cursor, task: Dict):
         task_status = %s
         WHERE task_uuid = %s
         RETURNING task_uuid, creator, board, title, description, updated, created, deadline, start_time, task_status""",
-        (task.get("creator"), task.get("board_uuid"), task.get("title"), task.get("description"), datetime.now(),
+        (task.get("creator"), task.get("board"), task.get("title"), task.get("description"), datetime.now(),
          task.get("deadline"), task.get("start_time"), task.get("task_status"), task.get("task_uuid")))
     temp = cur.fetchone()
     cur.connection.commit()

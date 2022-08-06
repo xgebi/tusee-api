@@ -12,11 +12,12 @@ from app.utils.settings_tasks import get_app_settings
 @db_connection
 def setup_totp(*args, connection: psycopg.Connection, **kwargs):
 	"""
+	Endpoint for getting app settings
 
-
+    :param connection:
     :param args:
     :param kwargs:
     :return:
     """
-	settings = get_app_settings(connection=connection)
-	return jsonify(settings)
+	app_settings = get_app_settings(connection=connection)
+	return jsonify(app_settings)
