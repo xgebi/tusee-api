@@ -51,11 +51,11 @@ def create_task(user, task, conn: psycopg.Connection):
             start_time = None
         cur.execute(
             """INSERT INTO tusee_tasks 
-            (task_uuid, creator, board, title, description, updated, created, deadline, start_time) 
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            (task_uuid, creator, board, title, description, updated, created, deadline, start_time, task_status) 
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             RETURNING task_uuid, creator, board, title, description, updated, created, deadline, start_time, task_status""",
             (task_uuid, user["user_uuid"], task.get("board"), task.get("title"), task.get("description"), datetime.now(),
-             datetime.now(), deadline, start_time))
+             datetime.now(), deadline, start_time, task.get("task_status")))
         task_dict = cur.fetchone()
 
     conn.commit()
