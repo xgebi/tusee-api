@@ -25,7 +25,7 @@ def get_standalone_tasks(*args, connection: psycopg.Connection, **kwargs):
     if user:
         return jsonify({
             "token": user["token"],
-            "tasks": get_standalone_tasks_for_user(user['user_uuid'], 'done', conn=connection)
+            "tasks": get_standalone_tasks_for_user(user_uuid=user['user_uuid'], conn=connection, is_active=True)
         })
     return jsonify({
         "loggedOut": True

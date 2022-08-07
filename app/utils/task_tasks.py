@@ -10,12 +10,13 @@ from app import db
 from app.utils.audit_log_tasks import log_permission_violation
 
 
-def get_standalone_tasks_for_user(user_uuid: str, status: str, conn: psycopg.Connection) -> List:
+def get_standalone_tasks_for_user(is_active: bool, user_uuid: str, conn: psycopg.Connection) -> List:
     with conn.cursor(row_factory=psycopg.rows.dict_row) as cur:
         cur.execute(
-            """SELECT task_uuid, creator, board, title, description, updated, created, deadline, start_time, task_status 
-            FROM tusee_tasks WHERE creator = %s AND board IS NULL AND task_status <> %s""",
-            (user_uuid, status)
+            """SELECT task_uuid, creator, board, title, description, updated, created, deadline, start_time, 
+            task_status, active 
+            FROM tusee_tasks WHERE creator = %s AND board IS NULL AND active = %s;""",
+            (user_uuid, is_active)
         )
         temps = cur.fetchall()
         return temps
@@ -199,11 +200,12 @@ def update_task_db(cur: Cursor, task: Dict):
     cur.execute(
         """UPDATE tusee_tasks 
         SET creator = %s, board = %s, title = %s, description = %s, updated = %s, deadline = %s, start_time = %s,
-        task_status = %s
+        task_status = %s, active = %s
         WHERE task_uuid = %s
         RETURNING task_uuid, creator, board, title, description, updated, created, deadline, start_time, task_status""",
         (task.get("creator"), task.get("board"), task.get("title"), task.get("description"), datetime.now(),
-         task.get("deadline"), task.get("start_time"), task.get("task_status"), task.get("task_uuid")))
+         task.get("deadline"), task.get("start_time"), task.get("task_status"), task.get("active"),
+         task.get("task_uuid")))
     temp = cur.fetchone()
     cur.connection.commit()
     return temp
