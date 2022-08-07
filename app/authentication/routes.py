@@ -29,6 +29,14 @@ def register_user(*args, connection: psycopg.Connection, **kwargs):
 	:param kwargs:
 	:return:
 	"""
+	with connection.cursor(row_factory=psycopg.rows.dict_row) as cur:
+		cur.execute("""SELECT settings_value FROM tusee_settings WHERE settings_name = 'registrationEnabled';""")
+		res = cur.fetchall()
+		if len(res) > 0:
+			if res[0]['settings_value'] != 'true':
+				return jsonify({"registrationSuccessful": False, "error": "disabled"}), 500
+		else:
+			return jsonify({"registrationSuccessful": False, "error": "disabled"}), 500
 	user_json = json.loads(request.data)
 	try:
 		user_uuid = create_user(
