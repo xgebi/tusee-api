@@ -126,7 +126,7 @@ def update_task(task, user, conn: psycopg.Connection):
 
         if task.get('board'):
             cur.execute("""SELECT tusee_user FROM tusee_encrypted_keys WHERE board = %s""",
-                        (task_dict.get('board'),))
+                        (task.get('board'),))
             temp = cur.fetchall()
             if len(temp) > 0:
                 return jsonify({"token": user["token"], "task": update_task_db(cur=cur, task=task)}), 200
