@@ -26,7 +26,7 @@ def get_notes(*args, connection: psycopg.Connection, **kwargs):
     if user:
         return jsonify({
             "token": user["token"],
-            "tasks": get_notes_for_user(user_uuid=user['user_uuid'], connection=connection)
+            "notes": get_notes_for_user(user_uuid=user['user_uuid'], connection=connection)
         })
     return jsonify({
         "loggedOut": True
@@ -50,7 +50,7 @@ def get_single_note(*args, note_uuid: str, connection: psycopg.Connection,**kwar
     if user:
         return jsonify({
             "token": user["token"],
-            "tasks": get_note_task(user_uuid=user['user_uuid'], connection=connection, note_uuid=note_uuid)
+            "note": get_note_task(user_uuid=user['user_uuid'], connection=connection, note_uuid=note_uuid)
         })
     return jsonify({
         "loggedOut": True
@@ -74,7 +74,7 @@ def update_note(*args, connection: psycopg.Connection,**kwargs):
         note_data = json.loads(request.data)
         return jsonify({
             "token": user["token"],
-            "tasks": update_note_task(user_uuid=user['user_uuid'], connection=connection, note=note_data)
+            "note": update_note_task(user_uuid=user['user_uuid'], connection=connection, note=note_data)
         })
     return jsonify({
         "loggedOut": True
@@ -98,7 +98,7 @@ def create_note(*args, connection: psycopg.Connection, **kwargs):
         note_data = json.loads(request.data)
         return jsonify({
             "token": user["token"],
-            "tasks": create_note_task(user_uuid=user['user_uuid'], connection=connection, note=note_data)
+            "note": create_note_task(user_uuid=user['user_uuid'], connection=connection, note=note_data)
         })
     return jsonify({
         "loggedOut": True
@@ -122,7 +122,7 @@ def delete_note(*args, note_uuid: str, connection: psycopg.Connection, **kwargs)
     if user:
         return jsonify({
             "token": user["token"],
-            "taskDeleted": delete_note_task(user_uuid=user['user_uuid'], connection=connection, note_uuid=note_uuid)
+            "noteDeleted": delete_note_task(user_uuid=user['user_uuid'], connection=connection, note_uuid=note_uuid)
         })
     return jsonify({
         "loggedOut": True
