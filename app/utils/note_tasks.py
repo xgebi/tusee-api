@@ -33,7 +33,7 @@ def create_note_task(*args, user_uuid: str, connection: psycopg.Connection, note
 		cur.execute(
 			"""INSERT INTO tusee_notes (note_uuid, user_uuid, title, note, updated, created) 
 			VALUES (%s, %s, %s, %s, %s, %s)
-			RETURNING user_uuid, note_uuid, title, note, created, updated;""",
+			RETURNING note_uuid, user_uuid, title, note, created, updated;""",
 			(str(uuid.uuid4()), user_uuid, note['title'], note['note'], datetime.now(), datetime.now())
 		)
 		temps = cur.fetchone()
@@ -45,11 +45,12 @@ def update_note_task(*args, user_uuid: str, connection: psycopg.Connection, note
 	with connection.cursor(row_factory=psycopg.rows.dict_row) as cur:
 		cur.execute(
 			"""UPDATE tusee_notes SET title = %s, note = %s, updated = %s WHERE user_uuid = %s AND note_uuid = %s
-			RETURNING user_uuid, note_uuid, title, note, created, updated;""",
-			(note['title'], note['note'], datetime.now(), user_uuid, note['uuid'])
+			RETURNING user_uuid, note_uuid, title, note, created, updated""",
+			(note['title'], note['note'], datetime.now(), user_uuid, note['note_uuid'])
 		)
 		temps = cur.fetchone()
 		connection.commit()
+
 		return temps
 
 
