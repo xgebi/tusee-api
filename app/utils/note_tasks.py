@@ -8,7 +8,7 @@ import psycopg
 def get_notes_for_user(*args, user_uuid: str, connection: psycopg.Connection, **kwargs):
 	with connection.cursor(row_factory=psycopg.rows.dict_row) as cur:
 		cur.execute(
-			"""SELECT note_uuid, user_uuid, title, note, created, updated
+			"""SELECT note_uuid, user_uuid, title, updated
 			FROM tusee_notes WHERE user_uuid = %s ORDER BY updated DESC;""",
 			(user_uuid, )
 		)
