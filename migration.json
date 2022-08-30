@@ -63,5 +63,10 @@
     "type": "sql",
     "folder": "setup",
     "file": "2022-08-07-162000_tasks_add_active_column.sql"
+  },
+  {
+    "type": "sql",
+    "folder": "setup",
+    "file": "2022-08-30-184100_create_notes_table.sql"
   }
 ]
