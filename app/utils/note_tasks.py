@@ -1,5 +1,6 @@
 import time
 import uuid
+from datetime import datetime
 from typing import Dict
 
 import psycopg
@@ -33,7 +34,7 @@ def create_note_task(*args, user_uuid: str, connection: psycopg.Connection, note
 			"""INSERT INTO tusee_notes (note_uuid, user_uuid, title, note, updated, created) 
 			VALUES (%s, %s, %s, %s, %s, %s)
 			RETURNING user_uuid, note_uuid, title, note, created, updated;""",
-			(str(uuid.uuid4()), user_uuid, note['title'], note['note'], time.time() * 1000, time.time() * 1000)
+			(str(uuid.uuid4()), user_uuid, note['title'], note['note'], datetime.now(), datetime.now())
 		)
 		temps = cur.fetchone()
 		connection.commit()
@@ -45,7 +46,7 @@ def update_note_task(*args, user_uuid: str, connection: psycopg.Connection, note
 		cur.execute(
 			"""UPDATE tusee_notes SET title = %s, note = %s, updated = %s WHERE user_uuid = %s AND note_uuid = %s
 			RETURNING user_uuid, note_uuid, title, note, created, updated;""",
-			(note['title'], note['note'], time.time() * 1000, user_uuid, note['uuid'])
+			(note['title'], note['note'], datetime.now(), user_uuid, note['uuid'])
 		)
 		temps = cur.fetchone()
 		connection.commit()
