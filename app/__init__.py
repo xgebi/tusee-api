@@ -23,5 +23,14 @@ def create_app():
     from app.board import board
     app.register_blueprint(board)
 
+    from app.event import event
+    app.register_blueprint(event)
+
+    from app.goal import goal
+    app.register_blueprint(goal)
+
+    from app.statistics import statistics
+    app.register_blueprint(statistics)
+
     return app
 
