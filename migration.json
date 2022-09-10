@@ -68,5 +68,20 @@
     "type": "sql",
     "folder": "setup",
     "file": "2022-08-30-184100_create_notes_table.sql"
+  },
+  {
+    "type": "sql",
+    "folder": "setup",
+    "file": "2022-09-04-134000_create_goals_table.sql"
+  },
+  {
+    "type": "sql",
+    "folder": "setup",
+    "file": "2022-09-04-134000_create_statistics_table.sql"
+  },
+  {
+    "type": "sql",
+    "folder": "setup",
+    "file": "2022-09-04-134000_modify_events_table.sql"
   }
 ]
